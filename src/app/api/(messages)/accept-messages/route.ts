@@ -1,63 +1,42 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "../../auth/[...nextauth]/options";
-import dbConnect from "@/lib/dbConnect";
-import { User } from "@/models/user.model";
 import { NextRequest } from "next/server";
-import { APIResponse, safeUserResponse } from "@/lib/APIResponse";
+import { APIResponse } from "@/lib/APIResponse";
+import { validateSession } from "@/lib/validateSession";
 
 export async function POST(req: NextRequest) {
-	await dbConnect();
-
-	const session = await getServerSession(authOptions);
-	if (!session || !session.user) {
-		return APIResponse({
-			success: false,
-			message: "Not Authenticated",
-			data: {},
-			status: 401,
-		});
-	}
-	const userId = session.user._id;
-
-	if (userId === "guest") {
-		return APIResponse({
-			success: false,
-			message: "Guest user cannot change message acceptance status",
-			data: {},
-			status: 401,
-		});
-	}
-
-	const { acceptMessages } = await req.json();
-
 	try {
-		const updatedUser = await User.findOneAndUpdate(
-			{ _id: userId },
-			{ isAcceptingMessage: acceptMessages },
-			{ new: true }
-		);
+		const sessionValidationRes = await validateSession({});
+
+		if (!sessionValidationRes.success) return APIResponse(sessionValidationRes);
+
+		const { user } = sessionValidationRes.data as any;
+
+		const { acceptMessages } = await req.json();
+
+		const updatedUser = await user.updateOne({
+			isAcceptingMessage: acceptMessages,
+		});
 
 		if (!updatedUser) {
 			return APIResponse({
 				success: false,
-				message: "User not found",
+				message: "Failed to update user messages acceptance status",
 				data: {},
-				status: 404,
+				status: 500,
 			});
 		}
 
 		return APIResponse({
 			success: true,
 			message: "Message acceptance status updated successfully",
-			data: safeUserResponse(updatedUser),
+			data: { isAcceptingMessage: updatedUser.isAcceptingMessage },
 			status: 200,
 		});
 	} catch (error) {
-		console.log("Failed to update user status to accept messages");
+		console.log("Error updating user messages acceptance status \n" , error);
 
 		return APIResponse({
 			success: false,
-			message: "Failed to update user status to accept messages",
+			message: "Some internal error occured while registering user",
 			data: {},
 			status: 500,
 		});
@@ -65,42 +44,21 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET() {
-	await dbConnect();
-
-	const session = await getServerSession(authOptions);
-	if (!session || !session.user) {
-		return APIResponse({
-			success: false,
-			message: "Not Authenticated",
-			data: {},
-			status: 401,
-		});
-	}
-
-	const user = session.user;
-
-	const userId = user._id;
-
 	try {
-		const foundedUser = await User.findById(userId);
+		const sessionValidationRes = await validateSession({});
 
-		if (!foundedUser) {
-			return APIResponse({
-				success: false,
-				message: "User not found",
-				data: {},
-				status: 404,
-			});
-		}
+		if (!sessionValidationRes.success) return APIResponse(sessionValidationRes);
+
+		const { user } = sessionValidationRes.data as any;
 
 		return APIResponse({
 			success: true,
-			message: `User is${!foundedUser.isAcceptingMessage ? " not" : ""} accepting messages:`,
-			data: safeUserResponse(foundedUser),
+			message: `User is${!user.isAcceptingMessage ? " not" : ""} accepting messages:`,
+			data: { isAcceptingMessage: user.isAcceptingMessage },
 			status: 200,
 		});
 	} catch (error) {
-		console.log("Failed to fetch user's status to accept messages");
+		console.log("Failed to fetch user's status to accept messages \n" , error);
 
 		return APIResponse({
 			success: false,

@@ -8,7 +8,7 @@ export const resDataSchema = z
 			const forbiddenKeys = [
 				"password",
 				"verificationCode",
-				"verificationCodeExpiry",
+				"activationDeadline",
 				"resetToken",
 				"resetTokenExpiry",
 			];

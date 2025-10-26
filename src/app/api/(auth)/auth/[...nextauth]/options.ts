@@ -3,6 +3,12 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcrypt";
 import dbConnect from "@/lib/dbConnect";
 import { User } from "@/models/user.model";
+import { sendEmail, emailConfig } from "@/lib/sendEmail";
+import { LoginAlert } from "@/components/emails/LoginAlert";
+import { NextRequest } from "next/server";
+import { constants } from "@/lib/constants";
+
+const { appName } = constants;
 
 export const authOptions: NextAuthOptions = {
 	providers: [
@@ -27,7 +33,7 @@ export const authOptions: NextAuthOptions = {
 						throw new Error("Invalid email or password");
 					}
 
-					if (!user.isVerified) {
+					if (!user.isActivated) {
 						throw new Error("Please verify your account to login");
 					}
 
@@ -35,6 +41,19 @@ export const authOptions: NextAuthOptions = {
 					if (!isPasswordValid) {
 						throw new Error("Invalid email or password");
 					}
+
+					const emailConfig: emailConfig = {
+						to: user.email,
+						subject: `New login to your ${appName} account`,
+						react: LoginAlert({
+							name: user.name,
+							loginTime: new Date(),
+							deviceInfo: req.headers ? req.headers["user-agent"] : "Unkown",
+						}),
+					};
+
+					await sendEmail(emailConfig);
+
 					return user;
 				} catch (error: any) {
 					throw new Error(error);
@@ -45,36 +64,23 @@ export const authOptions: NextAuthOptions = {
 			id: "guest",
 			name: "guest",
 			credentials: {},
-            async authorize(): Promise<any> {
-                return {
-                    _id: "guest",
-                    email: "guest@mystery-message.local",
-                    username: "guest",
-                    name: "Guest User",
-                    isVerified: true,
-                    isAcceptingMessage: false,
-                };
-            },
+			async authorize(): Promise<any> {
+				return {
+					_id: "guest",
+				};
+			},
 		}),
 	],
 	callbacks: {
 		async jwt({ token, user }) {
 			if (user) {
-				token._id = user._id?.toString();
-				token.email = user.email;
-				token.username = user.username;
-				token.name = user.name;
-				token.isAcceptingMessage = user.isAcceptingMessage;
-				token.isVerified = user.isVerified;
+				token._id = user._id.toString();
 			}
 			return token;
 		},
 		async session({ session, token }) {
 			if (token) {
 				session.user._id = token._id;
-				session.user.isVerified = token.isVerified;
-				session.user.isAcceptingMessage = token.isAcceptingMessage;
-				session.user.username = token.username;
 			}
 			return session;
 		},

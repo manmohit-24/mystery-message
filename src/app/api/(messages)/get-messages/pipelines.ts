@@ -1,8 +1,10 @@
 import mongoose, { PipelineStage } from "mongoose";
 
 const receiverPipelineConfig = {
-	$lookup: {
-		from: "users",
+	match: {
+		DeletedForReceiver: false,
+	},
+	lookup: {
 		let: {
 			senderId: "$sender",
 			isAnonymous: "$isAnonymous",
@@ -19,15 +21,9 @@ const receiverPipelineConfig = {
 				},
 			},
 		],
-		as: "anotherUserData",
 	},
 
-	$project: {
-		_id: 1,
-		content: 1,
-		createdAt: 1,
-		isAnonymous: 1,
-		isTrulyAnonymous: 1,
+	project: {
 		sender: {
 			$cond: {
 				if: { $eq: ["$isAnonymous", true] },
@@ -51,19 +47,15 @@ const receiverPipelineConfig = {
 };
 
 const senderPipelineConfig = {
-	$lookup: {
-		from: "users",
+	match: {
+		DeletedForSender: false,
+	},
+	lookup: {
 		localField: "receiver",
 		foreignField: "_id",
-		as: "anotherUserData",
 	},
 
-	$project: {
-		_id: 1,
-		content: 1,
-		createdAt: 1,
-		isAnonymous: 1,
-		isTrulyAnonymous: 1,
+	project: {
 		receiver: {
 			_id: "$receiver",
 			username: {
@@ -87,21 +79,41 @@ export function getMessagesPipeline({
 	cursor: string | null;
 	limit: number;
 }): PipelineStage[] {
-	const $match: any = {
-		[role]: new mongoose.Types.ObjectId(userId),
-	};
-	if (cursor) $match._id = { $lt: new mongoose.Types.ObjectId(cursor) };
-
-	const { $lookup, $project } =
+	const { match, lookup, project } =
 		role === "receiver" ? receiverPipelineConfig : senderPipelineConfig;
 
+	const matchId = cursor
+		? { _id: { $lt: new mongoose.Types.ObjectId(cursor) } }
+		: {};
+
 	const pipeline: PipelineStage[] = [
-		{ $match },
+		{
+			$match: {
+				[role]: new mongoose.Types.ObjectId(userId),
+				...match,
+				...matchId,
+			},
+		},
 		{ $sort: { createdAt: -1 } },
 		{ $limit: limit },
-		{ $lookup },
+		{
+			$lookup: {
+				from: "users",
+				as: "anotherUserData",
+				...lookup,
+			},
+		},
 		{ $unwind: { path: "$anotherUserData", preserveNullAndEmptyArrays: true } },
-		{ $project },
+		{
+			$project: {
+				_id: 1,
+				content: 1,
+				createdAt: 1,
+				isAnonymous: 1,
+				isTrulyAnonymous: 1,
+				...project,
+			},
+		},
 	];
 
 	return pipeline;

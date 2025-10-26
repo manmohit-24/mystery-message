@@ -39,7 +39,7 @@ export const logInSchema = z.object({
 	password: passwordValidation,
 });
 
-export const verificationCodeSchema = z
+export const activationCodeSchema = z
 	.string()
 	.length(6, "Verification code must be 6 digits long");
 

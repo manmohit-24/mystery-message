@@ -8,9 +8,7 @@ export async function GET(req: NextRequest) {
 	await dbConnect();
 
 	try {
-		const { searchParams } = new URL(req.url);
-		const username = searchParams.get("username");
-		// validate received data
+		const username = req.nextUrl.searchParams.get("username");
 		const validateRes = usernameValidation.safeParse(username);
 
 		if (!validateRes.success) {
@@ -23,12 +21,12 @@ export async function GET(req: NextRequest) {
 			});
 		}
 
-		// check if a User with this email already exists
+		// check if a User with this username already exists
 		const existingUserByUsername = await User.findOne({ username });
 		if (
 			existingUserByUsername && // username exists
-			(existingUserByUsername.isVerified || // is verified
-				existingUserByUsername.verificationCodeExpiry > new Date()) // or still has time to be verified.
+			(existingUserByUsername.isActivated || // is verified
+				existingUserByUsername.activationDeadline > new Date()) // or still has time to be verified.
 		) {
 			return APIResponse({
 				success: false,

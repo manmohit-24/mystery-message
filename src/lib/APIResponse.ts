@@ -13,7 +13,7 @@ type safeUserResObj = {
 	email: string;
 	username: string;
 	name: string;
-	isVerified: boolean;
+	isActivated: boolean;
 	isAcceptingMessage: boolean;
 };
 
@@ -47,7 +47,7 @@ export function safeUserResponse(user: UserDoc): safeUserResObj {
 		email: user.email,
 		username: user.username,
 		name: user.name,
-		isVerified: user.isVerified,
+		isActivated: user.isActivated,
 		isAcceptingMessage: user.isAcceptingMessage,
 	};
 }
