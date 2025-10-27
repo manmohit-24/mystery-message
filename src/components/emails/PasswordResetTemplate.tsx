@@ -8,6 +8,7 @@ import {
 	Section,
 	Text,
 	Button,
+	Link,
 } from "@react-email/components";
 
 import {
@@ -52,14 +53,9 @@ export const PasswordResetEmailTemplate = ({
 					<Button href={resetUrl} style={button}>
 						Reset Password
 					</Button>
-				</Section>
-
-				{/* Fallback URL */}
-				<Text style={paragraph}>
-					If the button above doesn’t work, copy and paste this link into your
-					browser:
-				</Text>
-				<Text style={link}>{resetUrl}</Text>
+                </Section>
+                
+				<Text style={paragraph}>This link/button is valid for next 10 mins only.</Text>
 
 				{/* Extra Info */}
 				<Text style={paragraph}>

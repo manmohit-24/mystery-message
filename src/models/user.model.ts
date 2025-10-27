@@ -11,6 +11,9 @@ export interface User extends Document {
 	activationDeadline: Date;
 
     isAcceptingMessage: boolean;
+
+    passwordResetToken: string;
+    passwordResetExpiry: Date;
     
     createdAt: Date;
     updatedAt: Date;
@@ -50,7 +53,13 @@ const userSchema: Schema<User> = new Schema(
 		isAcceptingMessage: {
 			type: Boolean,
 			default: false,
-		},
+        },
+        passwordResetToken: {
+            type: String,
+        },
+        passwordResetExpiry: {
+            type: Date,
+        },
 	},
 	{
 		timestamps: true,
