@@ -21,7 +21,7 @@ export default async (): Promise<void> => {
 
 		console.log("Connected to database");
 	} catch (error) {
-		console.log("Database Connection failed \n", error);
+		console.log("Error connecting to database: \n", error);
 		process.exit(1);
 	}
 };

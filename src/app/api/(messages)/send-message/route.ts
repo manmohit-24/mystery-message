@@ -4,6 +4,34 @@ import { NextRequest } from "next/server";
 import { APIResponse } from "@/lib/APIResponse";
 import { messageReqSchema } from "@/schemas/message.schema";
 import { validateSession } from "@/lib/validateSession";
+
+const RESPONSES = {
+	SUCCESS: {
+		success: true,
+		message: "Message sent successfully",
+		status: 200,
+	},
+	INVALID_REQUEST: (msg: string) => ({
+		success: false,
+		message: msg || "Invalid request",
+		status: 400,
+	}),
+	RECEIVER_NOT_FOUND: {
+		success: false,
+		message: "Receiver not found",
+		status: 404,
+	},
+	RECEIVER_NOT_ACCEPTING_MESSAGE: {
+		success: false,
+		message: "Receiver not accepting messages",
+		status: 403,
+	},
+	INTERNAL_ERROR: {
+		success: false,
+		message: "Some internal error occurred while sending message",
+		status: 500,
+	},
+};
 export async function POST(req: NextRequest) {
 	try {
 		const sessionValidationRes = await validateSession({
@@ -19,54 +47,20 @@ export async function POST(req: NextRequest) {
 		const body = await req.json();
 
 		const validateRes = messageReqSchema.safeParse(body);
-
-		if (!validateRes.success) {
-			const data = JSON.parse(validateRes.error.message)[0];
-			return APIResponse({
-				success: false,
-				message: data.message || "Invalid message format",
-				data: data,
-				status: 400,
-			});
-		}
-
 		const { content, receiverId, isAnonymous, isTrulyAnonymous } = body;
 
-		if (!receiverId || receiverId == sender._id) {
-			return APIResponse({
-				success: false,
-				message: "Invalid request",
-				data: {},
-				status: 400,
-			});
-		}
-
-		if (!content || content.length < 10 || content.length > 500) {
-			return APIResponse({
-				success: false,
-				message: "Invalid message content",
-				data: {},
-				status: 400,
-			});
+		if (!validateRes.success || receiverId == sender._id) {
+			const validationErrorMsg = validateRes.error
+				? JSON.parse(validateRes?.error.message)[0].message
+				: "";
+			return APIResponse(RESPONSES.INVALID_REQUEST(validationErrorMsg));
 		}
 
 		const receiver = await User.findById(receiverId);
-		if (!receiver) {
-			return APIResponse({
-				success: false,
-				message: "Receiver not found",
-				data: {},
-				status: 404,
-			});
-		}
-		if (!receiver.isAcceptingMessage) {
-			return APIResponse({
-				success: false,
-				message: "Receiver is not accepting messages",
-				data: {},
-				status: 400,
-			});
-		}
+		if (!receiver) return APIResponse(RESPONSES.RECEIVER_NOT_FOUND);
+
+		if (!receiver.isAcceptingMessage)
+			return APIResponse(RESPONSES.RECEIVER_NOT_ACCEPTING_MESSAGE);
 
 		const message = new Message({
 			content,
@@ -78,29 +72,12 @@ export async function POST(req: NextRequest) {
 			DeletedForReceiver: false,
 		});
 
-		if (!(await message.save())) {
-			return APIResponse({
-				success: false,
-				message: "Failed to send message",
-				data: {},
-				status: 500,
-			});
-		}
+		if (!(await message.save())) return APIResponse(RESPONSES.INTERNAL_ERROR);
 
-		return APIResponse({
-			success: true,
-			message: "Message sent successfully",
-			data: {},
-			status: 200,
-		});
+		return APIResponse(RESPONSES.SUCCESS);
 	} catch (error: any) {
-		console.log("Failed to send message", error);
+		console.log("Error sending message : \n", error);
 
-		return APIResponse({
-			success: false,
-			message: error.message || "Failed to send message",
-			data: {},
-			status: 500,
-		});
+		return APIResponse(RESPONSES.INTERNAL_ERROR);
 	}
 }

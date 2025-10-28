@@ -1,9 +1,27 @@
-import { User } from "@/models/user.model";
 import { Message } from "@/models/message.model";
 import { APIResponse } from "@/lib/APIResponse";
 import { NextRequest } from "next/server";
 import { getMessagesPipeline } from "./pipelines";
 import { validateSession } from "@/lib/validateSession";
+
+const RESPONSES = {
+	SUCCESS: (data: object) => ({
+		success: true,
+		message: "Messages fetched successfully",
+		status: 200,
+		data,
+	}),
+	INVALID_REQUEST: {
+		success: false,
+		message: "Invalid request",
+		status: 400,
+	},
+	INTERNAL_ERROR: {
+		success: false,
+		message: "Some internal error occurred while fetching messages",
+		status: 500,
+	},
+};
 
 export async function GET(req: NextRequest) {
 	try {
@@ -12,17 +30,11 @@ export async function GET(req: NextRequest) {
 		if (!sessionValidationRes.success) return APIResponse(sessionValidationRes);
 
 		const { user } = sessionValidationRes.data as any;
-        
-        const role = req.nextUrl.searchParams.get("role");
-        
-		if (!role || (role !== "receiver" && role !== "sender")) {
-			return APIResponse({
-				success: false,
-				message: "Invalid request",
-				data: {},
-				status: 400,
-			});
-		}
+
+		const role = req.nextUrl.searchParams.get("role");
+
+		if (!role || (role !== "receiver" && role !== "sender"))
+			return APIResponse(RESPONSES.INVALID_REQUEST);
 
 		const limit = 10;
 		const cursor = req.nextUrl.searchParams.get("cursor");
@@ -42,23 +54,9 @@ export async function GET(req: NextRequest) {
 			nextCursor = messages[messages.length - 1]._id;
 		}
 
-		return APIResponse({
-			success: true,
-			message: "User's messages fetched successfully",
-			data: {
-				messages,
-				nextCursor,
-			},
-			status: 200,
-		});
+		return APIResponse(RESPONSES.SUCCESS({ messages, nextCursor }));
 	} catch (error: any) {
-		console.log("Failed to fetch user's messages :", error);
-
-		return APIResponse({
-			success: false,
-			message: error.message || "Failed to fetch user's messages",
-			data: {},
-			status: 500,
-		});
+		console.log("Erorr fetching user's messages: ", error);
+		return APIResponse(RESPONSES.INTERNAL_ERROR);
 	}
 }

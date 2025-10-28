@@ -15,7 +15,6 @@ export async function validateSession({
 		return {
 			success: false,
 			message: "Not Authenticated",
-			data: {},
 			status: 401,
 		};
 	}
@@ -27,14 +26,20 @@ export async function validateSession({
 			return {
 				success: true,
 				message: "Guest session is valid",
-				data: { user: { _id: "guest" } },
+				data: {
+					user: {
+						_id: "guest",
+						name: "Guest",
+						username: "guest",
+						email: "guest",
+					},
+				},
 				status: 200,
 			};
 		}
 		return {
 			success: false,
 			message: "Guests can't perform this action",
-			data: {},
 			status: 401,
 		};
 	}
@@ -65,10 +70,11 @@ export async function validateSession({
 			status: 200,
 		};
 	} catch (error) {
+		console.log("Error validating session : \n", error);
+
 		return {
 			success: false,
 			message: "Error validating session",
-			data: { error },
 			status: 500,
 		};
 	}

@@ -8,34 +8,30 @@ export interface emailConfig {
 	react: React.ReactNode;
 }
 
+const RESPONSES = {
+	SUCCESS: {
+		success: true,
+		message: "Email sent successfully",
+		status: 200,
+	},
+	INTERNAL_ERROR: {
+		success: false,
+		message: "Error sending email",
+		status: 500,
+	},
+};
+
 export async function sendEmail(emailConfig: emailConfig): Promise<ApiResType> {
 	try {
 		const from = "Mystery Message <manmohit@resend.dev>";
 
-		const { data, error } = await resend.emails.send({ from, ...emailConfig });
+		const { error } = await resend.emails.send({ from, ...emailConfig });
 
-		if (error) {
-			return {
-				success: false,
-				message: "Error sending email",
-				status: 500,
-				data: error,
-			};
-		}
-		return {
-			success: true,
-			message: "Email sent successfully",
-			status: 200,
-			data,
-		};
-    } catch (error:any) {
-        console.log( "Error sending email" , error.message);
-        
-		return {
-			success: false,
-			message: "Error sending email",
-			status: 500,
-			data: { error },
-		};
+		if (error) return RESPONSES.INTERNAL_ERROR;
+
+		return RESPONSES.SUCCESS;
+	} catch (error) {
+		console.log("Error sending email : \n", error);
+		return RESPONSES.INTERNAL_ERROR;
 	}
 }

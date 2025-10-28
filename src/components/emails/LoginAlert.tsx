@@ -15,7 +15,6 @@ import {
 	secondary,
 	paragraph,
 	footer,
-	codeContainer,
 } from "./emailStyles";
 
 interface LoginAlertEmailProps {

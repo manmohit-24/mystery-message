@@ -1,8 +1,7 @@
 import crypto from "crypto";
 
 export function generateCode(length: number = 6): string {
-	const charset =
-		"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+	const charset = "abcdefghijklmnopqrstuvwxyzZ0123456789";
 	const bytes = crypto.randomBytes(length);
 	let code = "";
 

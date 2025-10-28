@@ -2,6 +2,20 @@ import { NextRequest } from "next/server";
 import { APIResponse } from "@/lib/APIResponse";
 import { validateSession } from "@/lib/validateSession";
 
+const RESPONSES = {
+	SUCCESS: (isAcceptingMessage: string) => ({
+		success: true,
+		message: `User is${!isAcceptingMessage ? " not" : ""} accepting messages:`,
+		data: { isAcceptingMessage },
+		status: 200,
+	}),
+	INTERNAL_ERROR: {
+		success: false,
+		message: "Some internal error occured.",
+		status: 500,
+	},
+};
+
 export async function POST(req: NextRequest) {
 	try {
 		const sessionValidationRes = await validateSession({});
@@ -16,30 +30,13 @@ export async function POST(req: NextRequest) {
 			isAcceptingMessage: acceptMessages,
 		});
 
-		if (!updatedUser) {
-			return APIResponse({
-				success: false,
-				message: "Failed to update user messages acceptance status",
-				data: {},
-				status: 500,
-			});
-		}
+		if (updatedUser.modifiedCount === 0)
+			return APIResponse(RESPONSES.INTERNAL_ERROR);
 
-		return APIResponse({
-			success: true,
-			message: "Message acceptance status updated successfully",
-			data: { isAcceptingMessage: updatedUser.isAcceptingMessage },
-			status: 200,
-		});
+		return APIResponse(RESPONSES.SUCCESS(acceptMessages));
 	} catch (error) {
-		console.log("Error updating user messages acceptance status \n" , error);
-
-		return APIResponse({
-			success: false,
-			message: "Some internal error occured while registering user",
-			data: {},
-			status: 500,
-		});
+		console.log("Error updating user messages acceptance status : \n", error);
+		return APIResponse(RESPONSES.INTERNAL_ERROR);
 	}
 }
 
@@ -51,20 +48,9 @@ export async function GET() {
 
 		const { user } = sessionValidationRes.data as any;
 
-		return APIResponse({
-			success: true,
-			message: `User is${!user.isAcceptingMessage ? " not" : ""} accepting messages:`,
-			data: { isAcceptingMessage: user.isAcceptingMessage },
-			status: 200,
-		});
+		return APIResponse(RESPONSES.SUCCESS(user.isAcceptingMessage));
 	} catch (error) {
-		console.log("Failed to fetch user's status to accept messages \n" , error);
-
-		return APIResponse({
-			success: false,
-			message: "Failed to fetch user's status to accept messages",
-			data: {},
-			status: 500,
-		});
+		console.log("Error fetching user's status to accept messages : \n", error);
+		return APIResponse(RESPONSES.INTERNAL_ERROR);
 	}
 }

@@ -3,6 +3,24 @@ import { APIResponse } from "@/lib/APIResponse";
 import { NextRequest } from "next/server";
 import { validateSession } from "@/lib/validateSession";
 
+const RESPONSES = {
+	SUCCESS: {
+		success: true,
+		message: "Message deleted successfully",
+		status: 200,
+	},
+	MESSAGE_NOT_FOUND: {
+		success: false,
+		message: "Message not found",
+		status: 404,
+	},
+	INTERNAL_ERROR: {
+		success: false,
+		message: "Some internal error occurred while deleting message",
+		status: 500,
+	},
+};
+
 export async function DELETE(req: NextRequest) {
 	try {
 		const sessionValidationRes = await validateSession({});
@@ -15,14 +33,7 @@ export async function DELETE(req: NextRequest) {
 
 		const message = await Message.findById(messageId);
 
-		if (!message) {
-			return APIResponse({
-				success: false,
-				message: "Message not found",
-				data: {},
-				status: 404,
-			});
-		}
+		if (!message) return APIResponse(RESPONSES.MESSAGE_NOT_FOUND);
 
 		let msgRes = null;
 
@@ -43,28 +54,12 @@ export async function DELETE(req: NextRequest) {
 				});
 		}
 
-		if (!msgRes) {
-			return APIResponse({
-				success: false,
-				message: "Error deleting message",
-				data: {},
-				status: 500,
-			});
-		}
-
-		return APIResponse({
-			success: true,
-			message: "Message dleted successfully",
-			data: {},
-			status: 200,
-		});
-	} catch (error: any) {
-		console.log("Error deleting message :", error.message);
-		return APIResponse({
-			success: false,
-			message: "Error deleting message",
-			data: {},
-			status: 500,
-		});
+		if (!msgRes || msgRes?.modifiedCount === 0) 
+			return APIResponse(RESPONSES.INTERNAL_ERROR);
+		
+		return APIResponse(RESPONSES.SUCCESS);
+	} catch (error) {
+		console.log("Error deleting message : \n", error);
+		return APIResponse(RESPONSES.INTERNAL_ERROR);
 	}
 }

@@ -6,7 +6,7 @@ export interface ApiResType {
 	status: number;
 	success: boolean;
 	message: string;
-	data: object;
+	data?: object;
 }
 type safeUserResObj = {
 	id: string;
@@ -18,18 +18,20 @@ type safeUserResObj = {
 };
 
 export const APIResponse = (response: ApiResType): NextResponse => {
-	let safeData: unknown;
-	// validating data against Zod schema
-	const result = resDataSchema.safeParse(response.data);
+	let safeData = {};
 
-	if (result.success) {
-		safeData = result.data;
-	} else {
-		console.error("Invalid API response data:", result.error.format());
-		safeData = {
-			error:
-				"Invalid , unsafe or sensitive API response data was tried to send back",
-		};
+	if (response.data) {
+		// validating data against Zod schema
+		const result = resDataSchema.safeParse(response?.data);
+		if (result.success) {
+			safeData = result.data;
+		} else {
+			console.error("Invalid API response data : \n", result);
+			safeData = {
+				error:
+					"Invalid ,unsafe or sensitive API response data was tried to send",
+			};
+		}
 	}
 
 	return NextResponse.json(

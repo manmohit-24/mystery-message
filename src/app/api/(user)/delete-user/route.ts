@@ -4,6 +4,19 @@ import { AccountDeleteAlertTemplate } from "@/components/emails/AccountDeleteAle
 import { sendEmail, emailConfig } from "@/lib/sendEmail";
 import { validateSession } from "@/lib/validateSession";
 
+const RESPONSES = {
+	SUCCESS: (activationDeadline: Date) => ({
+		success: true,
+		message: `Account is scheduled for deletion at ${activationDeadline.toDateString()}`,
+		status: 200,
+	}),
+	INTERNAL_ERROR: {
+		success: false,
+		message: "Some internal error occurred while deleting user",
+		status: 500,
+	},
+};
+
 export async function DELETE() {
 	try {
 		const sessionValidationRes = await validateSession({});
@@ -24,14 +37,8 @@ export async function DELETE() {
 			isAcceptingMessage: false,
 		});
 
-		if (!updatedUser) {
-			return APIResponse({
-				success: false,
-				message: "Error deleting user",
-				data: {},
-				status: 500,
-			});
-		}
+		if (updatedUser.modifiedCount === 0)
+			return APIResponse(RESPONSES.INTERNAL_ERROR);
 
 		const emailConfig: emailConfig = {
 			to: user.email,
@@ -46,18 +53,9 @@ export async function DELETE() {
 
 		if (!emailRes.success) return APIResponse(emailRes);
 
-		return APIResponse({
-			success: true,
-			message: `Account is scheduled for deletion at ${activationDeadline.toDateString()}`,
-			data: {},
-			status: 200,
-		});
+		return APIResponse(RESPONSES.SUCCESS(activationDeadline));
 	} catch (error) {
-		return APIResponse({
-			success: false,
-			message: "Error deleting user",
-			data: {},
-			status: 500,
-		});
+		console.log("Error deleting user : \n", error);
+		return APIResponse(RESPONSES.INTERNAL_ERROR);
 	}
 }

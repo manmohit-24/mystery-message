@@ -2,15 +2,17 @@ import { z } from "zod";
 
 export const resDataSchema = z
 	.object({})
-	.passthrough() // allow any extra fields
+	.loose() // allow any extra fields
 	.refine(
 		(data) => {
 			const forbiddenKeys = [
 				"password",
-				"verificationCode",
+				"activationCode",
 				"activationDeadline",
-				"resetToken",
-				"resetTokenExpiry",
+				"passwordResetToken",
+				"passwordResetExpiry",
+				"DeletedForSender",
+				"DeletedForReceiver",
 			];
 
 			const hasForbiddenKeys = (obj: any): boolean => {

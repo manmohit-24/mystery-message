@@ -18,7 +18,6 @@ import {
 	secondary,
 	paragraph,
 	footer,
-	link,
 	button,
 } from "./emailStyles";
 interface PasswordResetEmailProps {

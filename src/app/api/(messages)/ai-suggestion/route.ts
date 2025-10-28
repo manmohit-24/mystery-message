@@ -49,21 +49,19 @@ export async function POST(req: Request) {
 			return APIResponse({
 				success: false,
 				message: "Invalid or missing prompt.",
-				data: {},
 				status: 400,
 			});
 		}
 
-		const msgTrimmed = message.trim();
-		if (msgTrimmed.length > 300 || msgTrimmed.length < 10) {
+		const trimmedMsg = message.trim();
+		if (trimmedMsg.length > 300 || trimmedMsg.length < 10) {
 			return APIResponse({
 				success: false,
 				message: "Your input is too long. Please shorten your idea.",
-				data: {},
 				status: 400,
 			});
 		}
-		const prompt = `${msgTrimmed}. Avoid complex words.`;
+		const prompt = `${trimmedMsg}. Avoid complex words.`;
 
 		const systemPromptKey = type && type in systemPrompts ? type : "default";
 
@@ -76,18 +74,12 @@ export async function POST(req: Request) {
 		});
 
 		return result.toUIMessageStreamResponse();
-		// return APIResponse({
-		//     success: true,
-		//     message: "Success",
-		//     data: result,
-		//     status: 200
-		// })
+
 	} catch (error) {
-		console.error("AI Endpoint Error:", error);
+		console.error("Error generating AI response : \n", error);
 		return APIResponse({
 			success: false,
-			message: "A server error occurred during AI generation.",
-			data: {},
+			message: "Some internal error occurred while AI response generation.",
 			status: 500,
 		});
 	}

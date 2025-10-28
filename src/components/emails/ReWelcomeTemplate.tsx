@@ -18,9 +18,6 @@ import {
 	secondary,
 	paragraph,
 	footer,
-	link,
-	codeContainer,
-	code,
 	button,
 } from "./emailStyles";
 

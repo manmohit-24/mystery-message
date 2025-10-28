@@ -4,41 +4,50 @@ import { APIResponse } from "@/lib/APIResponse";
 import { NextRequest } from "next/server";
 import { sendEmail, emailConfig } from "@/lib/sendEmail";
 import { RecoverAccountTemplate } from "@/components/emails/RecoverAccountTemplate";
+import { emailValidation } from "@/schemas/auth.schema";
+
+const RESPONSES = {
+	SUCCESS: {
+		success: true,
+		message:
+			"If an account exists with that identifier, you'll receive an email shortly.",
+		status: 200,
+	},
+	INVALID_REQUEST: (msg?: string) => ({
+		success: false,
+		message: msg || "Invalid request",
+		status: 400,
+	}),
+	INTERNAL_ERROR: {
+		success: false,
+		message: "Some internal error occurred while requesting recovery user",
+		status: 500,
+	},
+};
+
 export async function GET(req: NextRequest) {
-	await dbConnect();
-
-	const email = req.nextUrl.searchParams.get("email");
-
 	try {
+		await dbConnect();
+
+		const email = req.nextUrl.searchParams.get("email");
+
+		const validateRes = emailValidation.safeParse(email);
+
+		if (!validateRes.success) {
+			const zodErrorMsg = JSON.parse(validateRes.error.message)[0].message;
+			return APIResponse(RESPONSES.INVALID_REQUEST(zodErrorMsg));
+		}
+
 		const user = await User.findOne({ email });
 
-		if (!user) {
-			return APIResponse({
-				success: false,
-				message: "User not found",
-				data: {},
-				status: 404,
-			});
-		}
+		if (!user) return APIResponse(RESPONSES.SUCCESS);
 
-		if (user.isActivated) {
-			return APIResponse({
-				success: false,
-				message: "User already activated",
-				data: {},
-				status: 404,
-			});
-		}
+		if (user.isActivated) return APIResponse(RESPONSES.INVALID_REQUEST());
 
-		if (user.activationDeadline < new Date()) {
-			return APIResponse({
-				success: false,
-				message:
-					"User activation deadline has passed, Please contact for further assistance.",
-				data: {},
-				status: 404,
-			});
-		}
+		if (user.activationDeadline < new Date())
+			return APIResponse(
+				RESPONSES.INVALID_REQUEST("Your Account was prematurely deleted.")
+			);
 
 		const emailConfig: emailConfig = {
 			to: user.email,
@@ -46,8 +55,8 @@ export async function GET(req: NextRequest) {
 			react: RecoverAccountTemplate({
 				activationCode: user.activationCode,
 				deadline: user.activationDeadline,
-                name: user.name,
-                redirectLink : "/"
+				name: user.name,
+				redirectLink: `${process.env.PUBLIC_APP_URL}/activate-account?userId=${user._id}`,
 			}),
 		};
 
@@ -55,20 +64,10 @@ export async function GET(req: NextRequest) {
 
 		if (!emailRes.success) return APIResponse(emailRes);
 
-		return APIResponse({
-			success: true,
-			message: "Email instructions sent successfully",
-			data: {},
-			status: 200,
-		});
+		return APIResponse(RESPONSES.SUCCESS);
 	} catch (error) {
-		console.log("Failed to Send Email Instructions", error);
+		console.log("Error requesting recovery user : \n", error);
 
-		return APIResponse({
-			success: false,
-			message: "Failed to Send Email Instructions",
-			data: {},
-			status: 500,
-		});
+		return APIResponse(RESPONSES.INTERNAL_ERROR);
 	}
 }

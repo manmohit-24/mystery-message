@@ -7,7 +7,6 @@ import {
 	Link,
 	Section,
 	Text,
-	Button,
 } from "@react-email/components";
 import { constants } from "@/lib/constants";
 
@@ -19,9 +18,6 @@ import {
 	paragraph,
 	footer,
 	link,
-	codeContainer,
-	code,
-	button,
 } from "./emailStyles";
 
 interface WelcomeEmailProps {

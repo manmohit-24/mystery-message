@@ -5,7 +5,6 @@ import dbConnect from "@/lib/dbConnect";
 import { User } from "@/models/user.model";
 import { sendEmail, emailConfig } from "@/lib/sendEmail";
 import { LoginAlert } from "@/components/emails/LoginAlert";
-import { NextRequest } from "next/server";
 import { constants } from "@/lib/constants";
 
 const { appName } = constants;
@@ -30,16 +29,18 @@ export const authOptions: NextAuthOptions = {
 					});
 
 					if (!user) {
-						throw new Error("Invalid email or password");
+						throw new Error("Invalid credentials.");
 					}
 
 					if (!user.isActivated) {
-						throw new Error("Please verify your account to login");
+						throw new Error(
+							"Please activate your account to login. Check your email."
+						);
 					}
 
 					const isPasswordValid = await bcrypt.compare(password, user.password);
 					if (!isPasswordValid) {
-						throw new Error("Invalid email or password");
+						throw new Error("Invalid credentials.");
 					}
 
 					const emailConfig: emailConfig = {

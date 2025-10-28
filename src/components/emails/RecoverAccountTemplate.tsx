@@ -7,7 +7,6 @@ import {
 	Link,
 	Section,
 	Text,
-	Button,
 } from "@react-email/components";
 import { constants } from "@/lib/constants";
 
@@ -21,7 +20,6 @@ import {
 	link,
 	codeContainer,
 	code,
-	button,
 } from "./emailStyles";
 
 interface RecoverAccountEmailProps {

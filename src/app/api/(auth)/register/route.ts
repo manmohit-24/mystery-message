@@ -10,66 +10,71 @@ import { VerificationEmailTemplate } from "@/components/emails/VerifyEmailTempla
 import { getServerSession } from "next-auth";
 import { authOptions } from "../auth/[...nextauth]/options";
 
+const RESPONSES = {
+	SUCCESS: (data: object) => ({
+		success: true,
+		message: "User registered successfully",
+		status: 200,
+		data,
+	}),
+	INVALID_REQUEST: (msg: string) => ({
+		success: false,
+		message: msg || "Invalid request",
+		status: 400,
+	}),
+	USER_ALREADY_EXISTS_EMAIL: {
+		success: false,
+		message: "User with this email already exists",
+		status: 400,
+	},
+	USER_ALREADY_EXISTS_USERNAME: {
+		success: false,
+		message: "User with this username already exists",
+		status: 400,
+	},
+	ALREADY_LOGGED_IN: {
+		success: false,
+		message: "Already Logged In",
+		status: 401,
+	},
+	INTERNAL_ERROR: {
+		success: false,
+		message: "Some internal error occurred while registering user",
+		status: 500,
+	},
+};
+
 export async function POST(request: NextRequest) {
-	const session = await getServerSession(authOptions);
-
-	if (session && session.user._id !== "guest") {
-		return APIResponse({
-			success: false,
-			message: "Already Logged In",
-			data: {},
-			status: 401,
-		});
-	}
-
-	// connecting to db
-	await connectDB();
-
 	try {
+		const session = await getServerSession(authOptions);
+
+		if (session && session.user._id !== "guest")
+			return APIResponse(RESPONSES.ALREADY_LOGGED_IN);
+
+		await connectDB();
+
 		const body = await request.json();
 		const { name, username, email, password } = body;
 
-		// validate received data
 		const validateRes = registerSchema.safeParse(body);
 		if (!validateRes.success) {
-			const data = JSON.parse(validateRes.error.message)[0];
-			return APIResponse({
-				success: false,
-				message: data.message || "Error registering user",
-				data: {},
-				status: 400,
-			});
+			const zodErrorMsg = JSON.parse(validateRes.error.message)[0].message;
+			return APIResponse(RESPONSES.INVALID_REQUEST(zodErrorMsg));
 		}
 
 		// check if a User with this email already exists
 		const existingUserByEmail = await User.findOne({ email });
 		if (existingUserByEmail) {
 			// check if a verified user with this email already exists
-			if (existingUserByEmail.isActivated) {
-				return APIResponse({
-					success: false,
-					message:
-						"User with this email already exists, please login or use another email",
-					data: {},
-					status: 400,
-				});
-			}
+			if (existingUserByEmail.isActivated)
+				return APIResponse(RESPONSES.USER_ALREADY_EXISTS_EMAIL);
 
 			// so user exists but is unverified
 			// check if the verification code has expired
 			if (existingUserByEmail.activationDeadline < new Date()) {
-				// the user can't verify his email now
-				// just delete that user to free the email
+				// the user can't verify his email now , just delete that user to free the email
 				await User.deleteOne({ _id: existingUserByEmail._id });
-			} else {
-				return APIResponse({
-					success: false,
-					message:
-						"A user with this email is already registered, please check your email to activate your account",
-					data: {},
-					status: 400,
-				});
-			}
+			} else return APIResponse(RESPONSES.USER_ALREADY_EXISTS_EMAIL);
 		}
 
 		// check if a verified user with this username already exists
@@ -83,14 +88,7 @@ export async function POST(request: NextRequest) {
 				// and the verification code has expired
 				// just delete that user to free the username
 				await User.deleteOne({ _id: existingUserByUsername?._id });
-			} else {
-				return APIResponse({
-					success: false,
-					message: "User with this username already exists",
-					data: {},
-					status: 400,
-				});
-			}
+			} else return APIResponse(RESPONSES.USER_ALREADY_EXISTS_USERNAME);
 		}
 
 		const hashedPassword = await bcrypt.hash(password, 10);
@@ -105,46 +103,27 @@ export async function POST(request: NextRequest) {
 			activationCode,
 			activationDeadline,
 		});
-		const userDB = await user.save();
+		const resUser = await user.save();
 
-		if (!userDB) {
-			return APIResponse({
-				success: false,
-				message: "Some internal error occured while registering user",
-				data: {},
-				status: 500,
-			});
-		}
+		if (!resUser) return APIResponse(RESPONSES.INTERNAL_ERROR);
 
 		const emailConfig: emailConfig = {
-			to: userDB.email,
+			to: resUser.email,
 			subject: "Verify your account",
 			react: VerificationEmailTemplate({
-				name: userDB.name,
-				validationCode: userDB.activationCode,
+				name: resUser.name,
+				validationCode: resUser.activationCode,
 			}),
 		};
 
 		const emailRes = await sendEmail(emailConfig);
 
-		if (!emailRes.success) {
-			return APIResponse(emailRes);
-		}
+		if (!emailRes.success) return APIResponse(emailRes);
 
-		return APIResponse({
-			success: true,
-			message: "User registered successfully",
-			data: safeUserResponse(userDB),
-			status: 200,
-		});
+		return APIResponse(RESPONSES.SUCCESS(safeUserResponse(resUser)));
 	} catch (error) {
-		console.log("Error registering user \n", error);
+		console.log("Error registering user : \n", error);
 
-		return APIResponse({
-			success: false,
-			message: "Some internal error occured while registering user",
-			data: { error },
-			status: 500,
-		});
+		return APIResponse(RESPONSES.INTERNAL_ERROR);
 	}
 }
