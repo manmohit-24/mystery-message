@@ -1,5 +1,5 @@
 "use client";
-import React, {  useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { SubmitHandler, useForm, Controller } from "react-hook-form";
 import { z } from "zod";
@@ -20,6 +20,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
+import Link from "next/link";
+import { signIn } from "next-auth/react";
+import { Eye, EyeClosed } from "lucide-react";
 
 export default function () {
 	const router = useRouter();
@@ -27,13 +30,17 @@ export default function () {
 	const [username, setUsername] = useState("");
 	const [usernameMsg, setUsernameMsg] = useState("");
 	const [isUsernameAvailable, setIsUsernameAvailable] = useState(false);
-
-	const [isCheckingUsername, setIsCheckingUsername] = useState(false);
-	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [debouncedUsername, setDebouncedUsername] = useDebounceValue(
 		username,
 		500
 	);
+    const [isCheckingUsername, setIsCheckingUsername] = useState(false);
+    
+    const [isSubmitting, setIsSubmitting] = useState(false);
+        const [isLoginAsGuest, setIsLoginAsGuest] = useState(false);
+        const [showPassword, setShowPassword] = useState(false);
+    
+
 
 	const form = useForm<z.infer<typeof registerSchema>>({
 		resolver: zodResolver(registerSchema),
@@ -52,7 +59,7 @@ export default function () {
 			const { data: res } = await axios.post("/api/register", data);
 			if (res.success) {
 				toast.success(res.message);
-				router.push(`/activate/${res.data._id}`);
+				router.push(`/activate/${res.data.id}`);
 			} else {
 				toast.error(res.message);
 			}
@@ -86,6 +93,22 @@ export default function () {
 		})();
 	}, [debouncedUsername]);
 
+        const handleGuestLogin = async () => {
+            setIsSubmitting(true);
+            setIsLoginAsGuest(true);
+            const res = await signIn("guest", {
+                redirect: false,
+            });
+    
+            if (res?.error) {
+                // setErrors(res.error.replace("Error: ", ""));
+            } else {
+                toast.success("Logged in as guest");
+                router.push("/");
+            }
+            setIsSubmitting(false);
+            setIsLoginAsGuest(false);
+        };
 	return (
 		<>
 			<div className="text-center">
@@ -99,6 +122,19 @@ export default function () {
 				onSubmit={form.handleSubmit(onSubmit)}
 				className="flex flex-col gap-5"
 			>
+				<FieldGroup>
+					<Controller
+						name="name"
+						control={form.control}
+						render={({ field }) => (
+							<Field>
+								<FieldLabel htmlFor="name">Full Name</FieldLabel>
+								<Input {...field} id="name" placeholder="Name here ... " />
+								<FieldError>{form.formState.errors.name?.message}</FieldError>
+							</Field>
+						)}
+					/>
+				</FieldGroup>
 				<FieldGroup>
 					<Controller
 						name="username"
@@ -116,25 +152,17 @@ export default function () {
 									}}
 								/>
 
-								<FieldDescription>
-									{isCheckingUsername ? <Spinner /> : usernameMsg}
-								</FieldDescription>
-								<FieldError>
-									{form.formState.errors.username?.message}
-								</FieldError>
-							</Field>
-						)}
-					/>
-				</FieldGroup>
-				<FieldGroup>
-					<Controller
-						name="name"
-						control={form.control}
-						render={({ field }) => (
-							<Field>
-								<FieldLabel htmlFor="name">Full Name</FieldLabel>
-								<Input {...field} id="name" placeholder="Name here ... " />
-								<FieldError>{form.formState.errors.name?.message}</FieldError>
+								{form.formState.errors.username ? (
+									<FieldError>
+										{form.formState.errors.username?.message}
+									</FieldError>
+								) : (
+									<FieldDescription
+										className={`${!isUsernameAvailable ? "text-destructive" : "text-black"}`}
+									>
+										{isCheckingUsername ? <Spinner /> : usernameMsg}
+									</FieldDescription>
+								)}
 							</Field>
 						)}
 					/>
@@ -164,12 +192,22 @@ export default function () {
 						render={({ field }) => (
 							<Field>
 								<FieldLabel htmlFor="password">Password</FieldLabel>
-								<Input
-									{...field}
-									id="password"
-									type="password"
-									placeholder="********"
-								/>
+								<div className="relative text-right">
+									<Input
+										{...field}
+										id="password"
+										type={showPassword ? "text" : "password"}
+										placeholder="********"
+									/>
+
+									<button
+										className="absolute right-2 top-1/2 -translate-y-1/2"
+										type="button"
+										onClick={() => setShowPassword((prev) => !prev)}
+									>
+										{!showPassword ? <EyeClosed /> : <Eye />}{" "}
+									</button>
+								</div>
 								<FieldError>
 									{form.formState.errors.password?.message}
 								</FieldError>
@@ -177,7 +215,25 @@ export default function () {
 						)}
 					/>
 				</FieldGroup>
-				<Button>Sign up</Button>
+				<Button disabled={isSubmitting}>
+					{isSubmitting && !isLoginAsGuest && <Spinner />} Register
+				</Button>
+				<Button
+					variant="outline"
+					type="button"
+					onClick={handleGuestLogin}
+					disabled={isSubmitting}
+				>
+					{isSubmitting && isLoginAsGuest && <Spinner />}Continue as Guest
+				</Button>
+				<div className="text-center">
+					<p>
+						Already have an account ?{" "}
+						<Link href="/login" className="underline text-blue-500">
+							Login
+						</Link>
+					</p>
+				</div>
 			</form>
 		</>
 	);

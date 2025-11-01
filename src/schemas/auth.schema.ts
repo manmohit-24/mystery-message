@@ -35,7 +35,7 @@ export const registerSchema = z.object({
 });
 
 export const logInSchema = z.object({
-	email: emailValidation,
+	identifier: z.union([emailValidation, usernameValidation]),
 	password: passwordValidation,
 });
 
