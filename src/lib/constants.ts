@@ -1,4 +1,5 @@
 export const constants = {
-	appName: "Mystery Message",
+    appName: "Mystery Message",
+    description : "Send Anonymous Messages" ,
 	supportEmail: "support@Noemail-yet",
 };

@@ -34,7 +34,7 @@ export async function DELETE(req: NextRequest) {
 
 		const { user } = sessionValidationRes.data as any;
 
-		const { messageId } = await req.json();
+        const messageId = req.nextUrl.searchParams.get("messageId");
 
 		const message = await Message.findById(messageId);
 

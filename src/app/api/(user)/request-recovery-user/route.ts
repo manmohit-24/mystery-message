@@ -56,7 +56,7 @@ export async function GET(req: NextRequest) {
 				activationCode: user.activationCode,
 				deadline: user.activationDeadline,
 				name: user.name,
-				redirectLink: `${process.env.PUBLIC_APP_URL}/activate-account?userId=${user._id}`,
+				redirectLink: `${process.env.NEXT_PUBLIC_APP_URL}/activate-account?userId=${user._id}`,
 			}),
 		};
 

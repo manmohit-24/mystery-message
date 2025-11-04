@@ -69,7 +69,8 @@ export async function POST(req: NextRequest) {
 			isAnonymous: isGuest || isAnonymous || isTrulyAnonymous,
 			isTrulyAnonymous: isGuest || isTrulyAnonymous,
 			DeletedForSender: isGuest || isTrulyAnonymous,
-			DeletedForReceiver: false,
+            DeletedForReceiver: false,
+            status: "sent",
 		});
 
 		if (!(await message.save())) return APIResponse(RESPONSES.INTERNAL_ERROR);

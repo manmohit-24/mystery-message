@@ -7,7 +7,8 @@ export interface Message extends Document {
 	isAnonymous: boolean;
 	isTrulyAnonymous: boolean;
 	DeletedForSender: boolean;
-	DeletedForReceiver: boolean;
+    DeletedForReceiver: boolean;
+    status: string;
 }
 
 const messageSchema: Schema<Message> = new Schema(
@@ -41,7 +42,11 @@ const messageSchema: Schema<Message> = new Schema(
 		DeletedForReceiver: {
 			type: Boolean,
 			default: false,
-		},
+        },
+        status: {
+            type: String,
+            default: "pending",
+        },
 	},
 	{
 		timestamps: true,

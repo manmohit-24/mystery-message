@@ -48,6 +48,11 @@ export async function GET(req: NextRequest) {
 
 		const messages = await Message.aggregate(pipeline);
 
+		const messagesIds = messages.map((msg) => msg._id);
+		markMessagesRead(messagesIds).catch((err) =>
+			console.error("Background markMessagesRead failed:", err)
+		);
+
 		let nextCursor = null;
 		if (messages.length > limit) {
 			messages.pop(); // removing that extra msg
@@ -56,7 +61,20 @@ export async function GET(req: NextRequest) {
 
 		return APIResponse(RESPONSES.SUCCESS({ messages, nextCursor }));
 	} catch (error: any) {
-		console.log("Erorr fetching user's messages: ", error);
+		console.log("Erorr fetching user's messages: h", error);
 		return APIResponse(RESPONSES.INTERNAL_ERROR);
 	}
 }
+
+const markMessagesRead = async (messageIds: string[]) => {
+	try {
+		await Message.updateMany(
+			{
+				_id: { $in: messageIds },
+			},
+			{ $set: { status: "read" } }
+		);
+	} catch (error: any) {
+		console.log("Error updating message read status: \n", error);
+	}
+};

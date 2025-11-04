@@ -6,6 +6,7 @@ import { User } from "@/models/user.model";
 import { sendEmail, emailConfig } from "@/lib/sendEmail";
 import { LoginAlert } from "@/components/emails/LoginAlert";
 import { constants } from "@/lib/constants";
+import { getServerSession } from "next-auth";
 
 const { appName } = constants;
 
@@ -22,6 +23,11 @@ export const authOptions: NextAuthOptions = {
 				await dbConnect();
 
 				try {
+					const session = await getServerSession(authOptions);
+
+					if (session && session.user._id !== "guest")
+						throw new Error("You are already logged in.");
+
 					const { identifier, password } = credentials;
 
 					const user = await User.findOne({

@@ -75,11 +75,11 @@ export async function GET(req: NextRequest) {
 			subject: "Password Reset",
 			react: PasswordResetEmailTemplate({
 				name: user.username,
-				resetUrl: `${process.env.PUBLIC_APP_URL}/reset-password?userId=${user._id}&token=${passwordResetToken}`,
+				resetUrl: `${process.env.NEXT_PUBLIC_APP_URL}/reset-password?userId=${user._id}&token=${passwordResetToken}`,
 			}),
         };        
 		console.log(
-			`${process.env.PUBLIC_APP_URL}/reset-password?userId=${user._id}&token=${passwordResetToken}`
+			`${process.env.NEXT_PUBLIC_APP_URL}/reset-password?userId=${user._id}&token=${passwordResetToken}`
 		);
 
 		const emailRes = await sendEmail(emailConfig);

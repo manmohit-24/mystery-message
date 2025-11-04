@@ -1,0 +1,413 @@
+"use client";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm, Controller } from "react-hook-form";
+import { acceptMessageSchema } from "@/schemas/message.schema";
+import axios, { AxiosError } from "axios";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Separator } from "@/components/ui/separator";
+import { RefreshCcw } from "lucide-react";
+import MessageCard from "@/components/MessageCard";
+import { MessageResType } from "@/schemas/message.schema";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useSession } from "next-auth/react";
+import { ApiResType } from "@/lib/APIResponse";
+import { Spinner } from "@/components/ui/spinner";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
+
+export default function () {
+	const session = useSession();
+	const [isSwitchLoading, setIsSwitchLoading] = useState(false);
+	const [isFetchingMessages, setIsFetchingMessages] = useState(false);
+	const [sentMessages, setSentMessages]: [MessageResType[], any] = useState([]);
+	const [receivedMessages, setReceivedMessages]: [MessageResType[], any] =
+		useState([]);
+	const [isLoading, setIsLoading] = useState(false);
+
+	const receivedCursor = useRef<string>("");
+	const sentCursor = useRef<string>("");
+	const [canFetchMoreReceivedMsg, setCanFetchMoreReceivedMsg] = useState(true);
+	const [canFetchMoreSentMsg, setCanFetchMoreSentMsg] = useState(true);
+	const receivedObserverRef = useRef<HTMLDivElement | null>(null);
+	const sentObserverRef = useRef<HTMLDivElement | null>(null);
+	const [currentTab, setCurrentTab] = useState("received");
+	const form = useForm({
+		resolver: zodResolver(acceptMessageSchema),
+	});
+
+	const isAcceptingMessages = form.watch("isAcceptingMessages");
+
+	const userId = session.data?.user._id;
+	const profileUrl = `${process.env.NEXT_PUBLIC_APP_URL}/u/${userId}`;
+
+	const copyToClipboard = () => {
+		navigator.clipboard.writeText(profileUrl);
+		toast.success("Copied to clipboard");
+	};
+
+	const fetchSentMessages = useCallback(
+		async (isRefresh: boolean = false) => {
+			setIsFetchingMessages(true);
+			try {
+				if (isRefresh) setSentMessages([]);
+				else if (sentCursor.current === null) {
+					setCanFetchMoreSentMsg(false);
+					return;
+				}
+				setCanFetchMoreSentMsg(true);
+
+				const cursor: string = isRefresh ? "" : sentCursor.current;
+				const { data: res } = await axios.get(
+					`api/get-messages?role=sender&cursor=${cursor}`
+				);
+
+				if (res.success) {
+					const nextCursor = res.data.nextCursor;
+
+					if (nextCursor !== cursor) {
+						sentCursor.current = nextCursor;
+
+						setSentMessages((prev: MessageResType[]) =>
+							isRefresh ? res.data.messages : prev.concat(res.data.messages)
+						);
+					}
+				}
+			} catch (error) {
+				const axiosError = error as AxiosError<ApiResType>;
+				toast.error(
+					axiosError.response?.data.message || "Something went wrong"
+				);
+			} finally {
+				setIsFetchingMessages(false);
+			}
+		},
+		[sentCursor]
+	);
+
+	const fetchReceivedMessages = useCallback(
+		async (isRefresh: boolean = false) => {
+			setIsFetchingMessages(true);
+			try {
+				if (isRefresh) setReceivedMessages([]);
+				else if (receivedCursor.current === null) {
+					setCanFetchMoreReceivedMsg(false);
+					return;
+				}
+				setCanFetchMoreReceivedMsg(true);
+
+				const cursor: string = isRefresh ? "" : receivedCursor.current;
+				const { data: res } = await axios.get(
+					`api/get-messages?role=receiver&cursor=${cursor}`
+				);
+
+				if (res.success) {
+					const nextCursor = res.data.nextCursor;
+
+					if (nextCursor !== cursor) {
+						receivedCursor.current = nextCursor;
+
+						setReceivedMessages((prev: MessageResType[]) =>
+							isRefresh ? res.data.messages : prev.concat(res.data.messages)
+						);
+					}
+				}
+			} catch (error) {
+				const axiosError = error as AxiosError<ApiResType>;
+				toast.error(
+					axiosError.response?.data.message || "Something went wrong"
+				);
+			} finally {
+				setIsFetchingMessages(false);
+			}
+		},
+		[receivedCursor]
+	);
+
+	useEffect(() => {
+		(async () => {
+			setIsLoading(true);
+			await fetchReceivedMessages(true);
+			await fetchSentMessages(true);
+			try {
+				const { data: res } = await axios.get(`api/accept-messages`);
+
+				if (res.success)
+					form.setValue("isAcceptingMessages", res.data.isAcceptingMessages);
+			} catch (error) {
+				const axiosError = error as AxiosError<ApiResType>;
+				toast.error(
+					axiosError.response?.data.message || "Something went wrong"
+				);
+			} finally {
+				setIsLoading(false);
+			}
+		})();
+	}, []);
+
+	useEffect(() => {
+		const receivedObserver = new IntersectionObserver(
+			async (entries) => {
+				const firstEntry = entries[0];
+
+				if (
+					firstEntry.isIntersecting &&
+					!isFetchingMessages &&
+					canFetchMoreReceivedMsg
+				)
+					await fetchReceivedMessages();
+			},
+			{
+				root: null,
+				threshold: 0.1,
+			}
+		);
+
+		const sentObserver = new IntersectionObserver(
+			async (entries) => {
+				const firstEntry = entries[0];
+				if (
+					firstEntry.isIntersecting &&
+					!isFetchingMessages &&
+					canFetchMoreSentMsg
+				)
+					await fetchSentMessages();
+			},
+			{
+				root: null,
+				threshold: 0.1,
+			}
+		);
+
+		if (receivedObserverRef.current)
+			receivedObserver.observe(receivedObserverRef.current);
+
+		if (sentObserverRef.current) sentObserver.observe(sentObserverRef.current);
+
+		return () => {
+			if (receivedObserverRef.current)
+				receivedObserver.unobserve(receivedObserverRef.current);
+
+			if (sentObserverRef.current)
+				sentObserver.unobserve(sentObserverRef.current);
+		};
+	}, [
+		isLoading,
+		isFetchingMessages,
+		canFetchMoreReceivedMsg,
+		canFetchMoreSentMsg,
+		receivedObserverRef,
+		sentObserverRef,
+		currentTab,
+	]);
+
+	const handleAcceptMsgSwitchToggle = async () => {
+		setIsSwitchLoading(true);
+		try {
+			const { data: res } = await axios.post(`api/accept-messages`, {
+				acceptMessages: isAcceptingMessages,
+			});
+
+			if (!res.success) {
+				form.setValue("isAcceptingMessages", !isAcceptingMessages);
+			}
+		} catch (error) {
+			const axiosError = error as AxiosError<ApiResType>;
+			toast.error(axiosError.response?.data.message || "Something went wrong");
+		} finally {
+			setIsSwitchLoading(false);
+		}
+	};
+
+	const handleMsgDelete = ({
+		messageId,
+		role,
+	}: {
+		messageId: string;
+		role: string;
+	}) => {
+		if (role === "sender") {
+			setSentMessages((prev: MessageResType[]) =>
+				prev.filter((msg: MessageResType) => msg._id !== messageId)
+			);
+        }
+        else if(role === "receiver") {
+            setReceivedMessages((prev: MessageResType[]) =>
+                prev.filter((msg: MessageResType) => msg._id !== messageId)
+            );
+        }
+	};
+
+	if (isLoading)
+		return (
+			<div className="flex items-center justify-center h-screen">
+				<Spinner className="text-primary size-15" />
+			</div>
+		);
+
+	return (
+		<div className="my-8 mx-4 md:mx-8 lg:mx-auto p-6 bg-background rounded w-full max-w-6xl">
+			<h1 className="text-4xl font-bold mb-4">User Dashboard</h1>
+			<div className="mb-4">
+				<h2 className="text-lg font-semibold mb-2">Copy Your Unique Link</h2>{" "}
+				<div className="flex items-center">
+					<div className="border border-muted-foreground/50 rounded-md bg-secondary w-full p-2 mr-2">
+						{profileUrl}
+					</div>
+					<Button onClick={copyToClipboard}>Copy</Button>
+				</div>
+			</div>
+			<form
+				onSubmit={form.handleSubmit(handleAcceptMsgSwitchToggle)}
+				className="mb-4"
+			>
+				<Controller
+					name="isAcceptingMessages"
+					control={form.control}
+					render={({ field }) => (
+						<>
+							<Switch
+								checked={field.value}
+								onCheckedChange={field.onChange}
+								disabled={isSwitchLoading}
+								type="submit"
+							/>
+							<span className="ml-2">
+								Accept Messages: {isAcceptingMessages ? "On" : "Off"}
+							</span>
+						</>
+					)}
+				/>
+			</form>
+			<Separator />
+
+			<Tabs defaultValue={currentTab} className="w-fill">
+				<TabsList>
+					<TabsTrigger
+						onClick={() => setCurrentTab("received")}
+						value="received"
+					>
+						Received
+					</TabsTrigger>
+					<TabsTrigger onClick={() => setCurrentTab("sent")} value="sent">
+						Send
+					</TabsTrigger>
+				</TabsList>
+				<TabsContent value="received">
+					<div className="flex gap-2 items-center my-2">
+						<h2 className="text-lg font-semibold ">Messages I Received</h2>
+						<RefreshButton
+							callback={fetchReceivedMessages}
+							isFetchingMessages={isFetchingMessages}
+						/>
+					</div>
+					<div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6">
+						{receivedMessages.map((message) => (
+							<MessageCard
+								key={message._id}
+								message={message}
+								role="receiver"
+								handleMsgDelete={handleMsgDelete}
+							/>
+						))}
+					</div>
+					<LoadMore
+						observerRef={receivedObserverRef}
+						callback={fetchReceivedMessages}
+						canFetchMore={canFetchMoreReceivedMsg}
+						isFetchingMessages={isFetchingMessages}
+					/>
+				</TabsContent>
+				<TabsContent value="sent">
+					<div className="flex gap-2 items-center my-2">
+						<h2 className="text-lg font-semibold ">Messages Sent By Me </h2>
+
+						<RefreshButton
+							callback={fetchSentMessages}
+							isFetchingMessages={isFetchingMessages}
+						/>
+					</div>
+					<div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6">
+						{sentMessages.map((message) => (
+							<MessageCard
+								key={message._id}
+								message={message}
+								role="sender"
+								handleMsgDelete={handleMsgDelete}
+							/>
+						))}
+					</div>
+					<LoadMore
+						observerRef={sentObserverRef}
+						callback={fetchSentMessages}
+						isFetchingMessages={isFetchingMessages}
+						canFetchMore={canFetchMoreSentMsg}
+					/>
+				</TabsContent>
+			</Tabs>
+		</div>
+	);
+}
+
+const RefreshButton = ({
+	callback = (isRefresh: boolean) => {},
+	isFetchingMessages,
+}: {
+	callback: (isRefresh: boolean) => void;
+	isFetchingMessages: boolean;
+}) => {
+	return (
+		<Tooltip>
+			<TooltipTrigger asChild>
+				<Button
+					variant="secondary"
+					size="icon"
+					onClick={() => callback(true)}
+					disabled={isFetchingMessages}
+				>
+					<RefreshCcw
+						className={`h-4 w-4 ${isFetchingMessages && "animate-spin"}`}
+					/>
+				</Button>
+			</TooltipTrigger>
+			<TooltipContent>Refresh</TooltipContent>
+		</Tooltip>
+	);
+};
+
+const LoadMore = ({
+	observerRef,
+	callback,
+	isFetchingMessages,
+	canFetchMore,
+}: {
+	observerRef: React.RefObject<HTMLDivElement | null>;
+	callback: (isRefresh: boolean) => void;
+	isFetchingMessages: boolean;
+	canFetchMore: boolean;
+}) => {
+	return (
+		<div ref={observerRef} className="flex flex-col items-center">
+			<Button
+				className="translate-y-[75%]"
+				variant="outline"
+				onClick={() => callback(false)}
+				disabled={!canFetchMore}
+			>
+				{isFetchingMessages && <Spinner />}
+				{canFetchMore
+					? isFetchingMessages
+						? "Loading"
+						: "Load More"
+					: "No More Messages"}
+			</Button>
+
+			<Separator className="mt-2" />
+		</div>
+	);
+};
