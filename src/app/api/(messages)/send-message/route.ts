@@ -42,13 +42,11 @@ export async function POST(req: NextRequest) {
 
 		const { user: sender } = sessionValidationRes.data as any;
 
-		const isGuest = sender._id === "guest";
+        const isGuest = sender._id === "guest";
 
 		const body = await req.json();
 
-
-        const validateRes = messageReqSchema.safeParse(body);
-                        console.log("here");
+		const validateRes = messageReqSchema.safeParse(body);
 
 		const { content, receiverId, isAnonymous, isTrulyAnonymous } = body;
 
@@ -58,22 +56,23 @@ export async function POST(req: NextRequest) {
 				: "";
 			return APIResponse(RESPONSES.INVALID_REQUEST(validationErrorMsg));
 		}
-        
+
 		const receiver = await User.findById(receiverId);
 		if (!receiver) return APIResponse(RESPONSES.RECEIVER_NOT_FOUND);
-
+        
 		if (!receiver.isAcceptingMessage)
 			return APIResponse(RESPONSES.RECEIVER_NOT_ACCEPTING_MESSAGE);
-
+        console.log("here");
+        
 		const message = new Message({
 			content,
-			sender: isTrulyAnonymous ? null : sender._id,
+			sender: isGuest || isTrulyAnonymous ? null : sender._id,
 			receiver: receiver._id,
 			isAnonymous: isGuest || isAnonymous || isTrulyAnonymous,
 			isTrulyAnonymous: isGuest || isTrulyAnonymous,
 			DeletedForSender: isGuest || isTrulyAnonymous,
-            DeletedForReceiver: false,
-            status: "sent",
+			DeletedForReceiver: false,
+			status: "sent",
 		});
 
 		if (!(await message.save())) return APIResponse(RESPONSES.INTERNAL_ERROR);

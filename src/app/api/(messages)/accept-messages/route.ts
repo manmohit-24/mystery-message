@@ -3,10 +3,10 @@ import { APIResponse } from "@/lib/APIResponse";
 import { validateSession } from "@/lib/validateSession";
 
 const RESPONSES = {
-	SUCCESS: (isAcceptingMessages: string) => ({
+	SUCCESS: (isAcceptingMessage: string) => ({
 		success: true,
-		message: `User is${!isAcceptingMessages ? " not" : ""} accepting messages:`,
-		data: { isAcceptingMessages },
+		message: `User is${!isAcceptingMessage ? " not" : ""} accepting messages:`,
+		data: { isAcceptingMessage },
 		status: 200,
 	}),
 	INTERNAL_ERROR: {

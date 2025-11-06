@@ -3,12 +3,20 @@ import { generateCode } from "@/lib/generateCode";
 import { AccountDeleteAlertTemplate } from "@/components/emails/AccountDeleteAlertTemplate";
 import { sendEmail, emailConfig } from "@/lib/sendEmail";
 import { validateSession } from "@/lib/validateSession";
+import { NextRequest } from "next/server";
+import bcrypt from "bcrypt";
+import { passwordValidation } from "@/schemas/auth.schema";
 
 const RESPONSES = {
 	SUCCESS: (activationDeadline: Date) => ({
 		success: true,
 		message: `Account is scheduled for deletion at ${activationDeadline.toDateString()}`,
 		status: 200,
+	}),
+	INVALID_REQUEST: (message: string) => ({
+		success: false,
+		message: message || "Invalid request",
+		status: 400,
 	}),
 	INTERNAL_ERROR: {
 		success: false,
@@ -17,13 +25,26 @@ const RESPONSES = {
 	},
 };
 
-export async function DELETE() {
+export async function PATCH(req: NextRequest) {
 	try {
 		const sessionValidationRes = await validateSession({});
 
 		if (!sessionValidationRes.success) return APIResponse(sessionValidationRes);
 
 		const { user } = sessionValidationRes.data as any;
+
+		const { password } = await req.json();
+
+		const validateRes = passwordValidation.safeParse(password);
+
+		if (!validateRes.success) {
+			const zodErrorMsg = JSON.parse(validateRes.error.message)[0].message;
+			return APIResponse(RESPONSES.INVALID_REQUEST(zodErrorMsg));
+		}
+
+		const isPasswordValid = await bcrypt.compare(password, user.password);
+		if (!isPasswordValid)
+			return APIResponse(RESPONSES.INVALID_REQUEST("Invalid password"));
 
 		const activationCode = generateCode(6);
 		const activationDeadline = new Date();

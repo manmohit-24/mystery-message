@@ -1,18 +1,13 @@
 "use client";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm, Controller } from "react-hook-form";
-import { acceptMessageSchema } from "@/schemas/message.schema";
 import axios, { AxiosError } from "axios";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { RefreshCcw } from "lucide-react";
 import MessageCard from "@/components/MessageCard";
 import { MessageResType } from "@/schemas/message.schema";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useSession } from "next-auth/react";
 import { ApiResType } from "@/lib/APIResponse";
 import { Spinner } from "@/components/ui/spinner";
 import {
@@ -20,10 +15,10 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
+import ProfileHeader from "@/components/ProfileHeader";
+import DashboardSkeleton from "@/components/skeletons/Dashboard.Skeleton";
 
 export default function () {
-	const session = useSession();
-	const [isSwitchLoading, setIsSwitchLoading] = useState(false);
 	const [isFetchingMessages, setIsFetchingMessages] = useState(false);
 	const [sentMessages, setSentMessages]: [MessageResType[], any] = useState([]);
 	const [receivedMessages, setReceivedMessages]: [MessageResType[], any] =
@@ -37,19 +32,6 @@ export default function () {
 	const receivedObserverRef = useRef<HTMLDivElement | null>(null);
 	const sentObserverRef = useRef<HTMLDivElement | null>(null);
 	const [currentTab, setCurrentTab] = useState("received");
-	const form = useForm({
-		resolver: zodResolver(acceptMessageSchema),
-	});
-
-	const isAcceptingMessages = form.watch("isAcceptingMessages");
-
-	const userId = session.data?.user._id;
-	const profileUrl = `${process.env.NEXT_PUBLIC_APP_URL}/u/${userId}`;
-
-	const copyToClipboard = () => {
-		navigator.clipboard.writeText(profileUrl);
-		toast.success("Copied to clipboard");
-	};
 
 	const fetchSentMessages = useCallback(
 		async (isRefresh: boolean = false) => {
@@ -134,19 +116,7 @@ export default function () {
 			setIsLoading(true);
 			await fetchReceivedMessages(true);
 			await fetchSentMessages(true);
-			try {
-				const { data: res } = await axios.get(`api/accept-messages`);
-
-				if (res.success)
-					form.setValue("isAcceptingMessages", res.data.isAcceptingMessages);
-			} catch (error) {
-				const axiosError = error as AxiosError<ApiResType>;
-				toast.error(
-					axiosError.response?.data.message || "Something went wrong"
-				);
-			} finally {
-				setIsLoading(false);
-			}
+			setIsLoading(false);
 		})();
 	}, []);
 
@@ -206,24 +176,6 @@ export default function () {
 		currentTab,
 	]);
 
-	const handleAcceptMsgSwitchToggle = async () => {
-		setIsSwitchLoading(true);
-		try {
-			const { data: res } = await axios.post(`api/accept-messages`, {
-				acceptMessages: isAcceptingMessages,
-			});
-
-			if (!res.success) {
-				form.setValue("isAcceptingMessages", !isAcceptingMessages);
-			}
-		} catch (error) {
-			const axiosError = error as AxiosError<ApiResType>;
-			toast.error(axiosError.response?.data.message || "Something went wrong");
-		} finally {
-			setIsSwitchLoading(false);
-		}
-	};
-
 	const handleMsgDelete = ({
 		messageId,
 		role,
@@ -235,55 +187,21 @@ export default function () {
 			setSentMessages((prev: MessageResType[]) =>
 				prev.filter((msg: MessageResType) => msg._id !== messageId)
 			);
-        }
-        else if(role === "receiver") {
-            setReceivedMessages((prev: MessageResType[]) =>
-                prev.filter((msg: MessageResType) => msg._id !== messageId)
-            );
-        }
+		} else if (role === "receiver") {
+			setReceivedMessages((prev: MessageResType[]) =>
+				prev.filter((msg: MessageResType) => msg._id !== messageId)
+			);
+		}
 	};
 
-	if (isLoading)
-		return (
-			<div className="flex items-center justify-center h-screen">
-				<Spinner className="text-primary size-15" />
-			</div>
-		);
 
-	return (
+	return isLoading ? (
+		<DashboardSkeleton />
+	) : (
 		<div className="my-8 mx-4 md:mx-8 lg:mx-auto p-6 bg-background rounded w-full max-w-6xl">
 			<h1 className="text-4xl font-bold mb-4">User Dashboard</h1>
-			<div className="mb-4">
-				<h2 className="text-lg font-semibold mb-2">Copy Your Unique Link</h2>{" "}
-				<div className="flex items-center">
-					<div className="border border-muted-foreground/50 rounded-md bg-secondary w-full p-2 mr-2">
-						{profileUrl}
-					</div>
-					<Button onClick={copyToClipboard}>Copy</Button>
-				</div>
-			</div>
-			<form
-				onSubmit={form.handleSubmit(handleAcceptMsgSwitchToggle)}
-				className="mb-4"
-			>
-				<Controller
-					name="isAcceptingMessages"
-					control={form.control}
-					render={({ field }) => (
-						<>
-							<Switch
-								checked={field.value}
-								onCheckedChange={field.onChange}
-								disabled={isSwitchLoading}
-								type="submit"
-							/>
-							<span className="ml-2">
-								Accept Messages: {isAcceptingMessages ? "On" : "Off"}
-							</span>
-						</>
-					)}
-				/>
-			</form>
+			<ProfileHeader />
+
 			<Separator />
 
 			<Tabs defaultValue={currentTab} className="w-fill">
@@ -349,7 +267,7 @@ export default function () {
 						canFetchMore={canFetchMoreSentMsg}
 					/>
 				</TabsContent>
-			</Tabs>
+			</Tabs> 
 		</div>
 	);
 }

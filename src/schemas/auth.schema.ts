@@ -39,6 +39,11 @@ export const logInSchema = z.object({
 	password: passwordValidation,
 });
 
+export const editProfileSchema = z.object({
+    name: nameValidation,
+    username: usernameValidation,
+})
+
 export const activationCodeSchema = z
 	.string( "Verification code is required" )
 	.length(6, "Verification code must be 6 digits long");

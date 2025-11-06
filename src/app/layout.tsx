@@ -4,7 +4,7 @@ import AuthProvider from "@/context/AuthProvider";
 import { Toaster } from "@/components/ui/sonner";
 import Navbar from "@/components/Navbar";
 import { constants } from "@/lib/constants";
-import AppLoader from "@/components/AppLoader";
+import AuthWatcher from "@/components/AuthWatcher";
 
 export const metadata: Metadata = {
 	title: constants.appName,
@@ -20,10 +20,9 @@ export default function RootLayout({
 		<html lang="en" className="scroll-smooth bg-background">
 			<body>
 				<AuthProvider>
-					<AppLoader>
-						<Navbar />
-						<main className="mt-16" >{children}</main>
-					</AppLoader>
+					<AuthWatcher />
+					<Navbar />
+					<main className="mt-16">{children}</main>
 					<Toaster />
 				</AuthProvider>
 			</body>

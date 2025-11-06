@@ -17,14 +17,13 @@ import {
 	FieldLabel,
 } from "@/components/ui/field";
 import { useParams } from "next/navigation";
-import { useSession } from "next-auth/react";
 import {
 	Tooltip,
 	TooltipContent,
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { HelpCircle } from "lucide-react";
+import { HelpCircle, Info } from "lucide-react";
 import { toast } from "sonner";
 import axios, { AxiosError } from "axios";
 import { ApiResType } from "@/lib/APIResponse";
@@ -36,9 +35,13 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import SendMessageSkeleton from "@/components/skeletons/SendMessage.Skeleton";
+import { useUserStore } from "@/store/user.store";
 
 export default function () {
-	const { data: session } = useSession();
+	const { user, isLoadingUser } = useUserStore();
+
+	const [isLoading, setIsLoading] = useState(isLoadingUser);
 
 	const receiverId = useParams().userId;
 	const form = useForm<MessageReqType>({
@@ -46,45 +49,52 @@ export default function () {
 		defaultValues: {
 			content: "",
 			isAnonymous: false,
-			isTrulyAnonymous: session?.user._id === "guest" ? true : false,
+			isTrulyAnonymous: user?._id === "guest" ? true : false,
 			receiverId: receiverId?.toString() || "",
 		},
 	});
 
 	const [isSending, setIsSending] = useState(false);
 	const [contentCounter, setContentCounter] = useState(0);
-
-	const [user, setUser] = useState({
+	const [receiver, setReceiver] = useState({
 		username: "",
 		name: "",
-		avatar: ""
+		avatar: "",
+		isAcceptingMessage: false,
 	});
 
 	useEffect(() => {
+		if (isLoadingUser) return;
+		else if (user?._id === "guest") form.setValue("isTrulyAnonymous", true);
+
 		(async () => {
+			setIsLoading(true);
 			try {
 				const { data: res } = await axios.get(
 					`/api/get-user?userId=${receiverId}`
 				);
-				setUser(res.data.user);
+				console.log(res.data.user);
+
+				setReceiver(res.data.user);
 			} catch (error) {
 				console.log(error);
+			} finally {
+				setIsLoading(false);
 			}
 		})();
-	}, []);
+	}, [isLoadingUser]);
 
 	const onSubmit: SubmitHandler<MessageReqType> = async (data) => {
 		setIsSending(true);
-        try {
-            console.log(data);
-            
-            const { data: res } = await axios.post("/api/send-message", data);
-            console.log(res);
-            
+		try {
+			console.log(data);
+
+			const { data: res } = await axios.post("/api/send-message", data);
+			console.log(res);
+
 			if (res.success) {
 				toast.success(res.message);
-            } else {
-                
+			} else {
 				toast.error(res.message);
 			}
 		} catch (error) {
@@ -99,9 +109,13 @@ export default function () {
 		setContentCounter(form.watch("content").length);
 	}, [form.watch("content")]);
 
-	return (
+	return isLoading ? (
+		<SendMessageSkeleton />
+	) : (
 		<div className="my-8 mx-4 md:mx-8 lg:mx-auto p-6 bg-background rounded w-full max-w-6xl">
-			<h1 className="text-4xl font-bold mb-4">Send Message to {user.name}</h1>
+			<h1 className="text-4xl font-bold mb-4">
+				Send Message to {receiver.name}
+			</h1>
 
 			<Card className="w-full gap-1 ">
 				<CardHeader className="pb-3">
@@ -109,16 +123,16 @@ export default function () {
 						<div className="flex items-center gap-3">
 							<Avatar className="h-10 w-10 bg-foreground rounded-full flex items-center justify-center">
 								<AvatarFallback className="text-background font-bold">
-									{user.name[0]}
+									{receiver.name[0]}
 								</AvatarFallback>
 							</Avatar>
 
 							<div>
 								<CardTitle className="text-base font-semibold">
-									{user.name}
+									{receiver.name}
 								</CardTitle>
 								<CardDescription className="text-xs">
-									@{user.username}
+									@{receiver.username}
 								</CardDescription>
 							</div>
 						</div>
@@ -150,16 +164,22 @@ export default function () {
 										<Field>
 											<FieldLabel htmlFor="content">
 												Write Your Message
+												{!receiver.isAcceptingMessage && (
+													<FieldError>
+														({receiver.name} is currently not accepting messages
+														)
+													</FieldError>
+												)}
 											</FieldLabel>
 											<Textarea
 												{...field}
 												placeholder="Type your anonymous message here..."
 												className="min-h-[120px] resize-none"
+												disabled={isSending || !receiver.isAcceptingMessage}
 											/>
 											<FieldDescription
 												className={`${contentCounter < 10 || contentCounter > 500 ? "text-red-500" : ""}`}
 											>
-												{" "}
 												{contentCounter} / 500
 											</FieldDescription>
 
@@ -172,7 +192,7 @@ export default function () {
 							</FieldGroup>
 
 							<div className="flex items-center justify-between mt-4">
-								<div className="space-y-4">
+								<div className="w-full space-y-4">
 									<FieldGroup>
 										<Controller
 											name="isAnonymous"
@@ -184,6 +204,11 @@ export default function () {
 															checked={field.value}
 															onCheckedChange={field.onChange}
 															id="isAnonymous"
+															disabled={
+																user?._id === "guest" ||
+																isSending ||
+																!receiver.isAcceptingMessage
+															}
 														/>
 														<FieldLabel
 															htmlFor="isAnonymous"
@@ -211,7 +236,11 @@ export default function () {
 															checked={field.value}
 															onCheckedChange={field.onChange}
 															id="isTrulyAnonymous"
-															disabled={session?.user._id === "guest"}
+															disabled={
+																user?._id === "guest" ||
+																isSending ||
+																!receiver.isAcceptingMessage
+															}
 														/>
 														<FieldLabel
 															htmlFor="isTrulyAnonymous"
@@ -224,24 +253,42 @@ export default function () {
 													<FieldError>
 														{form.formState.errors.isTrulyAnonymous?.message}
 													</FieldError>
+													{user?._id === "guest" && (
+                                                        <FieldDescription className="w-full flex items-center text-indigo-500 italic">
+                                                            <Info className="h-4 w-4 mr-1" />
+															Guest user can only send truly anonymous messages
+														</FieldDescription>
+													)}
 												</Field>
 											)}
 										/>
 									</FieldGroup>
 								</div>
-								<Button
-									type="submit"
-									disabled={isSending}
-									className="px-6 font-medium"
-								>
-									{isSending ? (
-										<>
-											<Spinner /> Sending...
-										</>
-									) : (
-										"Send Message"
+								<div className="flex items-center" >
+									<Button
+										type="submit"
+										className="px-6 font-medium"
+										disabled={
+											user?._id === receiverId ||
+											isSending ||
+											!receiver.isAcceptingMessage
+										}
+									>
+										{isSending ? (
+											<>
+												<Spinner /> Sending...
+											</>
+										) : (
+											"Send Message"
+										)}
+									</Button>
+									{user?._id === receiverId && (
+										<InfoTooltip
+											content="You can't send a message to yourself"
+											iconClassName = {"h-5 w-5 text-destructive/50 hover:text-destructive"}
+										/>
 									)}
-								</Button>
+								</div>
 							</div>
 						</form>
 					</div>
@@ -253,7 +300,13 @@ export default function () {
 	);
 }
 
-const InfoTooltip = ({ content }: { content: string }) => (
+const InfoTooltip = ({
+	content,
+	iconClassName = "",
+}: {
+	content: string;
+	iconClassName?: string;
+}) => (
 	<TooltipProvider>
 		<Tooltip>
 			<TooltipTrigger asChild>
@@ -261,7 +314,7 @@ const InfoTooltip = ({ content }: { content: string }) => (
 					type="button"
 					className="ml-1 text-muted-foreground hover:text-foreground"
 				>
-					<HelpCircle className="h-4 w-4" />
+					<HelpCircle className={`h-4 w-4 ${iconClassName}`} />
 				</button>
 			</TooltipTrigger>
 			<TooltipContent className="max-w-xs text-sm">{content}</TooltipContent>

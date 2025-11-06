@@ -14,12 +14,16 @@ import { Button } from "@/components/ui/button";
 import { LogOut, Settings, User } from "lucide-react";
 import Link from "next/link";
 import { constants } from "@/lib/constants";
+import NavbarSkeleton from "./skeletons/Navbar.Skeleton";
+import { useUserStore } from "@/store/user.store";
+
 
 export default function Navbar() {
-	const { data: session } = useSession();
-	const user = session?.user;
+    const {user , isLoadingUser} = useUserStore();
 
-	return (
+	return isLoadingUser ? (
+		<NavbarSkeleton />
+	) : (
 		<nav className="w-full border-b bg-secondary-foreground fixed top-0  z-100 text-background px-6 py-3 shadow-sm flex items-center justify-between">
 			<Link href="/" className="text-xl font-semibold">
 				{constants.appName}
@@ -31,7 +35,7 @@ export default function Navbar() {
 						<Button variant="ghost" className="rounded-full p-0 w-10 h-10">
 							<Avatar className="w-10 h-10  ">
 								<AvatarImage
-									src={user.image ?? ""}
+									src={user.avatar ?? ""}
 									alt={user.name ?? "User"}
 								/>
 								<AvatarFallback className="bg-background/20 text-background hover:text-foreground">
