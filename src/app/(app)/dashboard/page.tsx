@@ -194,30 +194,37 @@ export default function () {
 		}
 	};
 
+    const tabsClassName =
+			"p-4 data-[state=active]:bg-secondary  dark:data-[state=active]:bg-secondary data-[state=active]:text-foreground rounded-4xl dark:text-background text-background ";
 
 	return isLoading ? (
 		<DashboardSkeleton />
 	) : (
-		<div className="my-8 mx-4 md:mx-8 lg:mx-auto p-6 bg-background rounded w-full max-w-6xl">
+		<div className="my-8 mx-4 md:mx-8 lg:mx-auto p-6 bg-background rounded w-full max-w-6xl space-y-5">
 			<h1 className="text-4xl font-bold mb-4">User Dashboard</h1>
 			<ProfileHeader />
 
 			<Separator />
 
-			<Tabs defaultValue={currentTab} className="w-fill">
-				<TabsList>
+			<Tabs defaultValue={currentTab}>
+				<TabsList className="py-5 mx-auto bg-foreground dark:bg-foreground/80 rounded-4xl ">
 					<TabsTrigger
 						onClick={() => setCurrentTab("received")}
 						value="received"
+						className={tabsClassName}
 					>
 						Received
 					</TabsTrigger>
-					<TabsTrigger onClick={() => setCurrentTab("sent")} value="sent">
+					<TabsTrigger
+						onClick={() => setCurrentTab("sent")}
+						value="sent"
+						className={tabsClassName}
+					>
 						Send
 					</TabsTrigger>
 				</TabsList>
 				<TabsContent value="received">
-					<div className="flex gap-2 items-center my-2">
+					<div className="flex gap-2 items-center mx-auto w-fit my-2">
 						<h2 className="text-lg font-semibold ">Messages I Received</h2>
 						<RefreshButton
 							callback={fetchReceivedMessages}
@@ -242,7 +249,7 @@ export default function () {
 					/>
 				</TabsContent>
 				<TabsContent value="sent">
-					<div className="flex gap-2 items-center my-2">
+					<div className="flex gap-2 items-center mx-auto w-fit my-2">
 						<h2 className="text-lg font-semibold ">Messages Sent By Me </h2>
 
 						<RefreshButton
@@ -267,7 +274,7 @@ export default function () {
 						canFetchMore={canFetchMoreSentMsg}
 					/>
 				</TabsContent>
-			</Tabs> 
+			</Tabs>
 		</div>
 	);
 }

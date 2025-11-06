@@ -1,5 +1,4 @@
 import { APIResponse } from "@/lib/APIResponse";
-import { generateCode } from "@/lib/generateCode";
 import { AccountDeleteAlertTemplate } from "@/components/emails/AccountDeleteAlertTemplate";
 import { sendEmail, emailConfig } from "@/lib/sendEmail";
 import { validateSession } from "@/lib/validateSession";
@@ -46,14 +45,12 @@ export async function PATCH(req: NextRequest) {
 		if (!isPasswordValid)
 			return APIResponse(RESPONSES.INVALID_REQUEST("Invalid password"));
 
-		const activationCode = generateCode(6);
 		const activationDeadline = new Date();
 		activationDeadline.setDate(activationDeadline.getDate() + 8);
 		activationDeadline.setHours(0, 0, 0, 0);
 
 		const updatedUser = await user.updateOne({
 			isActivated: false,
-			activationCode,
 			activationDeadline,
 			isAcceptingMessage: false,
 		});

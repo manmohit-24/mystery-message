@@ -17,13 +17,13 @@ export default function () {
 			<Separator className="mb-6" />
 
 			{/* Tabs */}
-			<div className="flex gap-3 mb-6">
+			<div className="flex mx-auto w-fit gap-3 mb-6">
 				<Skeleton className="h-8 w-24 rounded-md" />
 				<Skeleton className="h-8 w-24 rounded-md" />
 			</div>
 
 			{/* Section header */}
-			<div className="flex gap-2 items-center my-2">
+			<div className="flex gap-2 mx-auto w-fit items-center my-2">
 				<Skeleton className="h-5 w-40" />
 				<Skeleton className="h-5 w-5 rounded-full" />
 			</div>

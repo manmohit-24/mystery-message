@@ -5,6 +5,7 @@ import dbConnect from "@/lib/dbConnect";
 import { User } from "@/models/user.model";
 import { sendEmail, emailConfig } from "@/lib/sendEmail";
 import { LoginAlert } from "@/components/emails/LoginAlert";
+import { ReWelcomeTemplate } from "@/components/emails/ReWelcomeTemplate";
 import { constants } from "@/lib/constants";
 import { getServerSession } from "next-auth";
 
@@ -37,8 +38,17 @@ export const authOptions: NextAuthOptions = {
 					if (!user) {
 						throw new Error("Invalid credentials.");
 					}
+					/*
+        User is validating for reactivation if activation deadline is more than 24 hours wrt to creatd at 
+        as first verifiication code is genereatd at created time and at max expires after 1 hr 
+        and reactivation deadline is 7 days so it will clearly be more than 1 day of created time.
+        We need it for email template selection
+        */
+					const isReactivation =
+						user.activationDeadline.getTime() >
+						user.createdAt.getTime() + 24 * 60 * 60 * 1000;
 
-					if (!user.isActivated) {
+					if (!user.isActivated && !isReactivation) {
 						throw new Error(
 							"Please activate your account to login. Check your email."
 						);
@@ -49,14 +59,40 @@ export const authOptions: NextAuthOptions = {
 						throw new Error("Invalid credentials.");
 					}
 
+					if (!user.isActivated && isReactivation) {
+						const updatedUser = await user.updateOne({
+							isActivated: true,
+							activationCode: "",
+							activationDeadline: new Date(),
+							isAcceptingMessage: true,
+						});
+
+						if (updatedUser.modifiedCount === 0)
+							throw new Error(
+								"Something went wrong while reactivating your account."
+							);
+					}
+
 					const emailConfig: emailConfig = {
 						to: user.email,
-						subject: `New login to your ${appName} account`,
-						react: LoginAlert({
-							name: user.name,
-							loginTime: new Date(),
-							deviceInfo: req.headers ? req.headers["user-agent"] : "Unkown",
-						}),
+						subject: isReactivation
+							? `Welcome Back to ${appName}`
+							: `New login to your ${appName} account`,
+						react: isReactivation
+							? ReWelcomeTemplate({
+									name: user.name,
+									loginTime: new Date(),
+									deviceInfo: req.headers
+										? req.headers["user-agent"]
+										: "Unkown",
+								})
+							: LoginAlert({
+									name: user.name,
+									loginTime: new Date(),
+									deviceInfo: req.headers
+										? req.headers["user-agent"]
+										: "Unkown",
+								}),
 					};
 
 					await sendEmail(emailConfig);

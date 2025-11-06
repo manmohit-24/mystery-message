@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/sonner";
 import Navbar from "@/components/Navbar";
 import { constants } from "@/lib/constants";
 import AuthWatcher from "@/components/AuthWatcher";
+import ThemeProvider from "@/components/ThemesProvider";
 
 export const metadata: Metadata = {
 	title: constants.appName,
@@ -21,8 +22,16 @@ export default function RootLayout({
 			<body>
 				<AuthProvider>
 					<AuthWatcher />
-					<Navbar />
-					<main className="mt-16">{children}</main>
+					<ThemeProvider
+						attribute="class"
+						defaultTheme="system"
+						enableSystem
+						disableTransitionOnChange
+					>
+						<Navbar />
+						<main className="mt-16">{children}</main>
+					</ThemeProvider>
+
 					<Toaster />
 				</AuthProvider>
 			</body>

@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { Eye, EyeClosed } from "lucide-react";
 import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 
 const schema = z
 	.object({
@@ -31,6 +32,14 @@ const schema = z
 	});
 
 export default function () {
+	return (
+		<Suspense fallback={<div>Loading...</div>}>
+			<ResetPasswordForm />
+		</Suspense>
+	);
+}
+
+function ResetPasswordForm() {
 	const router = useRouter();
 
 	const searchParams = useSearchParams();
@@ -64,18 +73,17 @@ export default function () {
 				userId,
 				token,
 				newPassword: data.newPassword,
-            });
-            
-            if(res.success){
-                toast.success(res.message);
-                router.push("/login");
-            }else{
-                toast.error(res.message);
-            }
+			});
 
-        } catch (error) {
-            const axiosError = error as AxiosError<ApiResType>;
-            toast.error(axiosError.response?.data.message || "Something went wrong");
+			if (res.success) {
+				toast.success(res.message);
+				router.push("/login");
+			} else {
+				toast.error(res.message);
+			}
+		} catch (error) {
+			const axiosError = error as AxiosError<ApiResType>;
+			toast.error(axiosError.response?.data.message || "Something went wrong");
 		} finally {
 			setIsSubmitting(false);
 		}

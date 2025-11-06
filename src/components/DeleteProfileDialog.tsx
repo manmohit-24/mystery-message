@@ -71,7 +71,7 @@ export default function DeleteProfileDialog() {
 							variant="outline"
 							size="icon"
 							type="button"
-							className="border-destructive/50 text-destructive/70 hover:bg-destructive/70 hover:text-background"
+							className="border-destructive/50 text-destructive hover:bg-destructive dark:hover:bg-destructive  hover:text-background"
 						>
 							<Trash2 />
 						</Button>

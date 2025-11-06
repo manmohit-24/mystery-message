@@ -23,12 +23,19 @@ import {
 
 interface ReWelcomeEmailProps {
 	name: string;
-	loginLink: string;
+	loginTime: Date;
+	deviceInfo: string;
 }
 
 const { appName } = constants;
 
-export const ReWelcomeTemplate = ({ name, loginLink }: ReWelcomeEmailProps) => {
+export const ReWelcomeTemplate = ({
+	name,
+	loginTime,
+	deviceInfo,
+}: ReWelcomeEmailProps) => {
+	const formattedLoginTime = `${loginTime.toLocaleDateString()} at ${loginTime.toLocaleTimeString()}`;
+
 	return (
 		<Html>
 			<Head />
@@ -48,11 +55,22 @@ export const ReWelcomeTemplate = ({ name, loginLink }: ReWelcomeEmailProps) => {
 						reactivated. You can now continue where you left off.
 					</Text>
 
-					<Section style={{ textAlign: "center", margin: "20px 0" }}>
-						<Link href={loginLink} style={button}>
-							Login Now
-						</Link>
-					</Section>
+					<Text style={paragraph}>
+						Reactivation is done by a new login to your {appName} account:
+					</Text>
+
+					<Text style={paragraph}>
+						Time: <b> {formattedLoginTime} </b>
+						<br />
+						Device / Browser: <b>{deviceInfo}</b>
+					</Text>
+
+					{/* Extra Info */}
+					<Text style={paragraph}>
+						If this was you, no action is needed. <br />
+						If you did NOT log in, please secure your account immediately by
+						changing your password.
+					</Text>
 
 					<br />
 				</Container>
