@@ -21,11 +21,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import Link from "next/link";
-import { signIn } from "next-auth/react";
 import { Eye, EyeClosed } from "lucide-react";
+import AuthSkeleton from "@/components/skeletons/Auth.Skeleton";
+import { useUserStore } from "@/store/user.store";
 
 export default function () {
 	const router = useRouter();
+	const { isLoadingUser } = useUserStore();
 
 	const [username, setUsername] = useState("");
 	const [usernameMsg, setUsernameMsg] = useState("");
@@ -90,10 +92,12 @@ export default function () {
 		})();
 	}, [debouncedUsername]);
 
-	return (
+	return isLoadingUser ? (
+		<AuthSkeleton fieldsCount={4} />
+	) : (
 		<>
 			<div className="text-center">
-				<h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl mb-6">
+				<h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl mb-2">
 					Join {constants.appName}
 				</h1>
 				<p className="mb-4">Sign up to get started</p>
@@ -197,7 +201,7 @@ export default function () {
 					/>
 				</FieldGroup>
 				<Button disabled={isSubmitting}>
-					{isSubmitting  && <Spinner />} Register
+					{isSubmitting && <Spinner />} Register
 				</Button>
 
 				<div className="text-center">

@@ -19,37 +19,51 @@ const authPaths = [
 	"activate",
 ];
 
+const appPaths = ["dashboard", "send"];
+
 export default function AuthWatcher() {
 	const router = useRouter();
 	const pathname = usePathname().split("/")[1];
 	const { status } = useSession();
 	const { setIsLoadingUser } = useUserStore();
 	const loaderset = useRef(false);
-	const unAuthLoaderSet = useRef(false);
 
-	if (status === "loading") {
-		if (!loaderset.current) {
-			setIsLoadingUser(true);
-			loaderset.current = true;
-		}
-		return null;
-	}
-
-	if (status === "unauthenticated") {
-		if (pathname === "send") return <GuestLogin />;
-		else if (!unAuthLoaderSet.current) {
-			setIsLoadingUser(false);
-			unAuthLoaderSet.current = true;
-
-			if (!authPaths.includes(pathname)) {
-				toast.warning("You are not logged in");
-				router.replace("/login");
+	switch (status) {
+		case "loading":
+			if (!loaderset.current) {
+				setIsLoadingUser(true);
+				loaderset.current = true;
 			}
-		}
+			return null;
+		case "unauthenticated":
+			if (pathname === "send") return <GuestLogin />;
+			else return <UnAuthRouting pathname={pathname} router={router} />;
+		case "authenticated":
+			return <UserFetcher pathname={pathname} router={router} />;
+		default:
+			return null;
 	}
+}
 
-	if (status === "authenticated")
-		return <UserFetcher pathname={pathname} router={router} />;
+export function UnAuthRouting({
+	pathname,
+	router,
+}: {
+	pathname: string;
+	router: any;
+}) {
+	const { setIsLoadingUser } = useUserStore();
+
+	useEffect(() => {
+		setIsLoadingUser(true);
+		console.log(pathname);
+
+		if (!authPaths.includes(pathname)) {
+			if (pathname !== "") toast.warning("You are not logged in");
+			router.push("/login");
+		}
+		setIsLoadingUser(false);
+	}, [pathname]);
 
 	return null;
 }
@@ -104,15 +118,18 @@ export function UserFetcher({
 	}, []);
 
 	useEffect(() => {
-		if (user) {
-			if (user._id !== "guest" && authPaths.includes(pathname)) {
-				toast.warning("You are already logged in");
-				router.replace("/dashboard");
-			} else if (user._id === "guest" && pathname === "dashboard") {
-				console.log("----- here we go sir");
+		setIsLoadingUser(true);
+		console.log(pathname);
 
-				toast.warning("You are logged in as guest");
-				router.replace("/login");
+		if (user) {
+			if (user._id !== "guest") {
+				if (authPaths.includes(pathname)) {
+					toast.warning("You are already logged in");
+					router.push("/dashboard");
+				} else if (!appPaths.includes(pathname)) router.push("/dashboard");
+			} else if (pathname === "dashboard") {
+				toast.warning("Please login to access dashboard");
+				router.push("/login");
 			}
 			/*
             So we are setting isLoadingUser to false here, 

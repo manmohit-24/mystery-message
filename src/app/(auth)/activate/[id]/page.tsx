@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { activationCodeSchema } from "@/schemas/auth.schema";
 import axios, { AxiosError } from "axios";
 import { ApiResType } from "@/lib/APIResponse";
-import { constants } from "@/lib/constants";
 import {
 	Field,
 	FieldDescription,
@@ -18,17 +17,20 @@ import { Button } from "@/components/ui/button";
 import {
 	InputOTP,
 	InputOTPGroup,
-	InputOTPSeparator,
 	InputOTPSlot,
 } from "@/components/ui/input-otp";
 import { Spinner } from "@/components/ui/spinner";
 import { useParams } from "next/navigation";
+import AuthSkeleton from "@/components/skeletons/Auth.Skeleton";
+import { useUserStore } from "@/store/user.store";
 
 export default function () {
+	const router = useRouter();
+	const { isLoadingUser } = useUserStore();
+
 	const { id } = useParams();
 	const [otp, setOtp] = useState("");
 	const [errors, setErrors] = useState("");
-	const router = useRouter();
 	const [isLoading, setIsLoading] = useState(false);
 
 	const onSubmit = async () => {
@@ -51,24 +53,26 @@ export default function () {
 				toast.success(res.message);
 				router.push("/login");
 			} else toast.error(res.message);
-        } catch (error) {
-                const axiosError = error as AxiosError<ApiResType>;
-                toast.error(axiosError.response?.data.message || "Something went wrong");
-            
+		} catch (error) {
+			const axiosError = error as AxiosError<ApiResType>;
+			toast.error(axiosError.response?.data.message || "Something went wrong");
 		} finally {
 			setIsLoading(false);
 		}
 	};
 
-	return (
+	return isLoadingUser ? (
+		<AuthSkeleton otpLength={6} showBttomLinks={false} />
+	) : (
 		<>
 			<div className="text-center">
-				<h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl mb-6">
-					Activate {constants.appName} Account
+				<h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl mb-2">
+					Activate Account
 				</h1>
+				<p className="mb-4">Enter the activation code send to your email</p>
 			</div>
 			<div className="flex flex-col items-center gap-5">
-				<FieldGroup className="flex flex-col items-center gap-1">
+				<FieldGroup className="flex flex-col items-center gap-2">
 					<FieldLabel>One-Time Password</FieldLabel>
 					<InputOTP maxLength={6} value={otp} onChange={(val) => setOtp(val)}>
 						<InputOTPGroup>
@@ -86,7 +90,7 @@ export default function () {
 					{errors && <FieldError>{errors}</FieldError>}
 				</FieldGroup>
 
-				<Button onClick={onSubmit} disabled={isLoading}>
+				<Button className="w-full" onClick={onSubmit} disabled={isLoading}>
 					{isLoading ? <Spinner /> : "Activate Account"}
 				</Button>
 			</div>

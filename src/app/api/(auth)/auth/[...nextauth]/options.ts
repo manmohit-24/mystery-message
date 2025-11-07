@@ -35,31 +35,27 @@ export const authOptions: NextAuthOptions = {
 						$or: [{ email: identifier }, { username: identifier }],
 					});
 
-					if (!user) {
-						throw new Error("Invalid credentials.");
-					}
-					/*
-        User is validating for reactivation if activation deadline is more than 24 hours wrt to creatd at 
-        as first verifiication code is genereatd at created time and at max expires after 1 hr 
-        and reactivation deadline is 7 days so it will clearly be more than 1 day of created time.
-        We need it for email template selection
-        */
-					const isReactivation =
-						user.activationDeadline.getTime() >
-						user.createdAt.getTime() + 24 * 60 * 60 * 1000;
+					if (!user) throw new Error("Invalid credentials.");
 
-					if (!user.isActivated && !isReactivation) {
+					/* ! isReactivation note ! :-
+                    User is validating for reactivation if activation deadline is more than 24 hours wrt to creatd at 
+                    as first verifiication code is genereatd at created time and at max expires after 1 hr 
+                    and reactivation deadline is 7 days so it will clearly be more than 1 day of created time.
+                    We need it for email template selection
+                    */
+					const isReactivation =
+						!user.isActivated &&
+						user.activationDeadline.getTime() > user.createdAt.getTime() + 24 * 60 * 60 * 1000;
+
+					if (!user.isActivated && !isReactivation)
 						throw new Error(
 							"Please activate your account to login. Check your email."
 						);
-					}
 
 					const isPasswordValid = await bcrypt.compare(password, user.password);
-					if (!isPasswordValid) {
-						throw new Error("Invalid credentials.");
-					}
+					if (!isPasswordValid) throw new Error("Invalid credentials.");
 
-					if (!user.isActivated && isReactivation) {
+					if (isReactivation) {
 						const updatedUser = await user.updateOne({
 							isActivated: true,
 							activationCode: "",

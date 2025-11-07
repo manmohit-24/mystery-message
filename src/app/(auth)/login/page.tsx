@@ -1,13 +1,11 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { SubmitHandler, useForm, Controller } from "react-hook-form";
 import { z } from "zod";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { logInSchema } from "@/schemas/auth.schema";
-
-import { constants } from "@/lib/constants";
 import {
 	Field,
 	FieldError,
@@ -17,11 +15,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
-import { signIn } from "next-auth/react";
+import { signIn, signOut } from "next-auth/react";
 import { Eye, EyeClosed } from "lucide-react";
 import Link from "next/link";
+import AuthSkeleton from "@/components/skeletons/Auth.Skeleton";
+import { useUserStore } from "@/store/user.store";
 
 export default function () {
+	const { user, isLoadingUser, setIsLoadingUser } = useUserStore();
+
 	const router = useRouter();
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [errors, setErrors] = useState("");
@@ -38,6 +40,11 @@ export default function () {
 	const handleLogin: SubmitHandler<z.infer<typeof logInSchema>> = async (
 		data: z.infer<typeof logInSchema>
 	) => {
+		if (user && user._id === "guest") {
+			await signOut({ redirect: false });
+			console.log("Done");
+		}
+
 		setIsSubmitting(true);
 		const res = await signIn("credentials", {
 			...data,
@@ -48,18 +55,20 @@ export default function () {
 			setErrors(res.error.replace("Error: ", ""));
 		} else {
 			toast.success("Logged in successfully");
-			router.replace("/");
+			setIsLoadingUser(true);
+			router.push("/dashboard");
 		}
 
 		setIsSubmitting(false);
 	};
 
-
-	return (
+	return isLoadingUser ? (
+		<AuthSkeleton fieldsCount={2} />
+	) : (
 		<>
 			<div className="text-center">
-				<h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl mb-6">
-					Welcome to {constants.appName}
+				<h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl mb-2">
+					Welcome Back
 				</h1>
 				<p className="mb-4">Log in to get started</p>
 				{errors && <FieldError>{errors}</FieldError>}

@@ -20,6 +20,8 @@ import { Spinner } from "@/components/ui/spinner";
 import { Eye, EyeClosed } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
+import AuthSkeleton from "@/components/skeletons/Auth.Skeleton";
+import { useUserStore } from "@/store/user.store";
 
 const schema = z
 	.object({
@@ -41,6 +43,7 @@ export default function () {
 
 function ResetPasswordForm() {
 	const router = useRouter();
+	const { isLoadingUser } = useUserStore();
 
 	const searchParams = useSearchParams();
 	const token = searchParams.get("token");
@@ -89,10 +92,12 @@ function ResetPasswordForm() {
 		}
 	};
 
-	return (
+	return isLoadingUser ? (
+		<AuthSkeleton fieldsCount={2} showBttomLinks={false} />
+	) : (
 		<>
 			<div className="text-center">
-				<h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl mb-6">
+				<h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl mb-2">
 					Reset Password
 				</h1>
 				<p className="mb-4">Enter your new password</p>

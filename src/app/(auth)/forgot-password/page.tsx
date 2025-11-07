@@ -14,9 +14,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import Link from "next/link";
-
+import AuthSkeleton from "@/components/skeletons/Auth.Skeleton";
+import { useUserStore } from "@/store/user.store";
+import ForgotPasswordEmailSentPage from "@/components/ForgotPasswordEmailSent";
 export default function () {
 	const router = useRouter();
+	const { isLoadingUser } = useUserStore();
 
 	const [email, setEmail] = useState("");
 	const [error, setError] = useState("");
@@ -43,11 +46,13 @@ export default function () {
 		}
 	};
 
-	return (
+	return isLoadingUser ? (
+		<AuthSkeleton fieldsCount={1} />
+	) : (
 		<>
 			<div className="text-center">
-				<h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl mb-6">
-					Request Password Reset
+				<h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl mb-2">
+					Forgot Password
 				</h1>
 				<p className="mb-4">Enter your email to reset your password</p>
 			</div>
@@ -68,7 +73,7 @@ export default function () {
 				</FieldGroup>
 
 				<Button disabled={isSubmitting} onClick={onSubmit}>
-                    {isSubmitting && <Spinner />} Continue
+					{isSubmitting && <Spinner />} Continue
 				</Button>
 
 				<div className="text-center">

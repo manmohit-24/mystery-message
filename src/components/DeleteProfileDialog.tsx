@@ -71,7 +71,7 @@ export default function DeleteProfileDialog() {
 							variant="outline"
 							size="icon"
 							type="button"
-							className="border-destructive/50 text-destructive hover:bg-destructive dark:hover:bg-destructive  hover:text-background"
+							className="border-destructive/50 dark:border-destructive/30 text-destructive hover:bg-destructive dark:hover:bg-destructive  hover:text-background"
 						>
 							<Trash2 />
 						</Button>
@@ -82,10 +82,13 @@ export default function DeleteProfileDialog() {
 				</TooltipContent>
 			</Tooltip>
 
-			<DialogContent className="sm:max-w-[425px]">
-				<form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-5" >
+			<DialogContent showCloseButton={false} className="sm:max-w-[425px]">
+				<form
+					onSubmit={form.handleSubmit(onSubmit)}
+					className="flex flex-col gap-5"
+				>
 					<DialogHeader>
-						<DialogTitle>Delete profile ?</DialogTitle>
+						<DialogTitle>Delete Your Account ?</DialogTitle>
 						<DialogDescription>
 							Your account will be deactivated for 7 days before permanent
 							deletion. You can log in anytime during this period to restore it.
@@ -97,7 +100,9 @@ export default function DeleteProfileDialog() {
 							control={form.control}
 							render={({ field }) => (
 								<Field>
-									<FieldLabel htmlFor="password">Enter your password to confirm deletion</FieldLabel>
+									<FieldLabel htmlFor="password">
+										Enter your password to confirm deletion
+									</FieldLabel>
 									<div className="relative text-right">
 										<Input
 											{...field}
@@ -124,14 +129,24 @@ export default function DeleteProfileDialog() {
 
 					<DialogFooter>
 						<DialogClose asChild>
-							<Button type="button" variant="outline" disabled={isSubmitting}>
+							<Button
+								type="button"
+								variant="outline"
+								onClick={() => form.setValue("password","")}
+								disabled={isSubmitting}
+							>
 								Cancel
 							</Button>
 						</DialogClose>
-						<Button type="submit" variant={"destructive"} className="font-bold" disabled={isSubmitting}>
+						<Button
+							type="submit"
+							variant={"destructive"}
+							className="font-bold  cursor-pointer"
+							disabled={isSubmitting}
+						>
 							{isSubmitting ? (
 								<>
-									<Spinner /> Saving
+									<Spinner /> Deleting
 								</>
 							) : (
 								"Confirm Deletion"
