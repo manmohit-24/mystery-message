@@ -12,6 +12,7 @@ import { useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
 
 const authPaths = [
+	"",
 	"login",
 	"register",
 	"forgot-password",
@@ -56,7 +57,6 @@ export function UnAuthRouting({
 
 	useEffect(() => {
 		setIsLoadingUser(true);
-		console.log(pathname);
 
 		if (!authPaths.includes(pathname)) {
 			if (pathname !== "") toast.warning("You are not logged in");
@@ -124,13 +124,14 @@ export function UserFetcher({
 		if (user) {
 			if (user._id !== "guest") {
 				if (authPaths.includes(pathname)) {
-					toast.warning("You are already logged in");
+					if (pathname) toast.warning("You are already logged in");
 					router.push("/dashboard");
 				} else if (!appPaths.includes(pathname)) router.push("/dashboard");
 			} else if (pathname === "dashboard") {
 				toast.warning("Please login to access dashboard");
 				router.push("/login");
 			}
+
 			/*
             So we are setting isLoadingUser to false here, 
             as it is under is if(user) block, 

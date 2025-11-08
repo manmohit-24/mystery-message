@@ -38,6 +38,8 @@ import {
 import SendMessageSkeleton from "@/components/skeletons/SendMessage.Skeleton";
 import { useUserStore } from "@/store/user.store";
 import { AIMessageHelper } from "@/components/AIMessageHelper";
+import Link from "next/link";
+
 export default function () {
 	const { user, isLoadingUser } = useUserStore();
 
@@ -300,6 +302,18 @@ export default function () {
 			<Separator className="mt-6" />
 
 			<AIMessageHelper onUse={(msg) => form.setValue("content", msg)} />
+
+			<Separator className="mt-6" />
+			<div className="w-full flex justify-center mt-10">
+				<Link href={user ? "/dashboard" : "/login"}>
+					<Button
+						variant={"outline"}
+						className="h-10 text-md border-2 border-indigo-600/50 dark:border-indigo-400/30 text-indigo-600 dark:text-indigo-400 hover:text-white dark:hover:text-white hover:bg-indigo-600 dark:hover:bg-indigo-600"
+					>
+						Click Here to Get Your Just-Say Link
+					</Button>
+				</Link>
+			</div>
 		</div>
 	);
 }

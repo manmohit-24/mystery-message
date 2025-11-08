@@ -188,7 +188,7 @@ export default function MessageCard({
 										className="cursor-pointer text-red-600"
 									>
 										<Trash2 className="mr-2 h-4 w-4" />
-										<span>Delete Message</span>
+										<span>Delete For Me</span>
 									</DropdownMenuItem>
 								</DropdownMenuContent>
 							</DropdownMenu>
@@ -197,9 +197,9 @@ export default function MessageCard({
 				</CardHeader>
 
 				<CardContent>
-					<p className="text-sm text-gray-700 mb-3">{message.content}</p>
+					<p className="text-sm text-secondary-foreground mb-3">{message.content}</p>
 
-					<div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t">
+					<div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t">
 						<div className="flex items-center gap-1">
 							<Clock className="h-3 w-3" />
 							<span>

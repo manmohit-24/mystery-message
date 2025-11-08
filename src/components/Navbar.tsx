@@ -1,6 +1,6 @@
 "use client";
 
-import { signOut, useSession } from "next-auth/react";
+import { signOut } from "next-auth/react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
 	DropdownMenu,
@@ -18,7 +18,7 @@ import NavbarSkeleton from "./skeletons/Navbar.Skeleton";
 import { useUserStore } from "@/store/user.store";
 import { useTheme } from "next-themes";
 import { Sun, Moon } from "lucide-react";
-
+import LogoProvider from "./LogoProvider";
 export default function Navbar() {
 	const { user, isLoadingUser } = useUserStore();
 	const { theme, setTheme } = useTheme();
@@ -26,8 +26,9 @@ export default function Navbar() {
 	return isLoadingUser ? (
 		<NavbarSkeleton />
 	) : (
-		<nav className="w-full border-b bg-secondary-foreground dark:bg-secondary fixed top-0  z-100 text-background dark:text-foreground px-6 py-3 shadow-sm flex items-center justify-between">
-			<Link href="/" className="text-xl font-semibold">
+		<nav className="w-full bg-secondary-foreground dark:bg-card fixed top-0  z-100 text-background dark:text-foreground px-6 py-3 flex items-center justify-between">
+                <Link href="/" className="text-xl font-semibold flex items-center gap-2">
+                <LogoProvider className="size-10" />
 				{constants.appName}
 			</Link>
 
