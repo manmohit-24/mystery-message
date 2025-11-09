@@ -54,7 +54,10 @@ export async function POST(request: NextRequest) {
 		await connectDB();
 
 		const body = await request.json();
-		const { name, username, email, password } = body;
+		const { name, username : reqUsername, email : reqEmail  , password } = body;
+
+        const username = reqUsername.toLowerCase();
+        const email = reqEmail.toLowerCase();
 
 		const validateRes = registerSchema.safeParse(body);
 		if (!validateRes.success) {
@@ -116,7 +119,7 @@ export async function POST(request: NextRequest) {
 			}),
 		};
 
-		sendEmail(emailConfig);
+		await sendEmail(emailConfig);
 
 		return APIResponse(RESPONSES.SUCCESS(safeUserResponse(resUser)));
 	} catch (error) {

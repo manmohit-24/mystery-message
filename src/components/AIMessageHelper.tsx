@@ -9,7 +9,7 @@ import {
 	SelectContent,
 	SelectItem,
 } from "@/components/ui/select";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { toast } from "sonner";
 
 import {
@@ -78,13 +78,16 @@ export function AIMessageHelper({
 	const modes = Object.keys(aiModes);
 	const [prompt, setPrompt] = useState("");
 	const [mode, setMode] = useState(modes[0]);
-	const [copied, setCopied] = useState(false);
+    const [copied, setCopied] = useState(false);
 
 	const { completion, complete, isLoading } = useCompletion({
 		api: "/api/ai-suggestion",
 	});
 
-	const handleGenerate = async () => {
+    const handleGenerate = async () => {
+        if (!prompt) return toast.warning("Write something first!");
+        if (prompt.length < 10) return toast.warning("Your input is too short.");
+
 		if (!prompt.trim()) return toast.warning("Write something first!");
 		await complete(JSON.stringify({ prompt, mode }));
 	};
@@ -97,21 +100,22 @@ export function AIMessageHelper({
 	};
 
 	return (
-		<Card className="mt-6 border border-muted/40">
-			<CardContent className="p-4 space-y-4">
+		<Card className="mt-6 border border-muted/40 gap-1">
+			<CardHeader>
 				<div className="flex items-center gap-2 text-lg font-semibold">
 					<Sparkles className="h-5 w-5 text-yellow-500" /> AI Message Generator
 				</div>
-
-				<div className="flex flex-col md:flex-row gap-2">
-					<Textarea
-						placeholder='e.g. "Write a cute message for her"'
-						value={prompt}
-						onChange={(e) => setPrompt(e.target.value)}
-						className="flex-1"
-					/>
+			</CardHeader>
+			<CardContent className="p-4 space-y-4">
+				<Textarea
+					placeholder='e.g. "Write a cute message for her"'
+					value={prompt}
+					onChange={(e) => setPrompt(e.target.value)}
+					className="flex-1"
+				/>
+				<div className="flex justify-between">
 					<Select value={mode} onValueChange={setMode}>
-						<SelectTrigger className="w-[140px]">
+						<SelectTrigger className="w-50">
 							<SelectValue placeholder="Choose tone" />
 						</SelectTrigger>
 						<SelectContent>
@@ -128,11 +132,10 @@ export function AIMessageHelper({
 						</SelectContent>
 					</Select>
 
-					<Button onClick={handleGenerate} disabled={isLoading}>
+					<Button className="w-32" onClick={handleGenerate} disabled={isLoading}>
 						{isLoading ? "Thinking..." : "Generate"}
 					</Button>
 				</div>
-
 				{completion && (
 					<div className="relative border rounded-md bg-muted/30 p-3">
 						<div className="p-4 bg-muted/30 rounded-lg font-medium text-foreground">

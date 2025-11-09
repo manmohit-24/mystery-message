@@ -67,7 +67,7 @@ export async function PATCH(req: NextRequest) {
 			}),
 		};
 
-		sendEmail(emailConfig);
+		await sendEmail(emailConfig);
 
 		return APIResponse(RESPONSES.SUCCESS(activationDeadline));
 	} catch (error) {

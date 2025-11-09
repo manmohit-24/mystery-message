@@ -78,7 +78,7 @@ export async function GET(req: NextRequest) {
 			}),
 		};
 
-		sendEmail(emailConfig);
+		await sendEmail(emailConfig);
 
 		return APIResponse(RESPONSES.SUCCESS(email));
 	} catch (error) {

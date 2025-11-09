@@ -110,7 +110,7 @@ export default function () {
 	) : (
 		<div className="my-8 mx-4 md:mx-8 lg:mx-auto p-6 bg-background rounded w-full max-w-6xl">
 			<h1 className="text-4xl font-bold mb-4">
-				Send Message to {receiver.name}
+				Just Say it to <span className="text-indigo-600 dark:text-indigo-400">{receiver.name}</span>
 			</h1>
 
 			<Card className="w-full gap-1 ">
@@ -187,7 +187,7 @@ export default function () {
 								/>
 							</FieldGroup>
 
-							<div className="flex items-center justify-between mt-4">
+							<div className="flex flex-col sm:flex-row gap-5 sm:items-center justify-between mt-4">
 								<div className="w-full space-y-4">
 									<FieldGroup>
 										<Controller

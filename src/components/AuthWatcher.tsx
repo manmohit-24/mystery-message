@@ -100,7 +100,7 @@ export function UserFetcher({
 		(async () => {
 			setIsLoadingUser(true);
 			try {
-				const { data: res } = await axios.get(`/api/get-user?username=me`);
+				const { data: res } = await axios.get(`/api/get-user?userId=me`);
 				if (res.success) setUser(res.data.user);
 			} catch (error) {
 				const axiosError = error as AxiosError<ApiResType>;

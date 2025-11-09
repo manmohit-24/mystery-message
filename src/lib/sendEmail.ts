@@ -11,9 +11,6 @@ export interface emailConfig {
 	react: React.ReactNode;
 }
 
-/* In this project , we are not using sendEmail with `await` 
-because we are treating it as a background task */
-
 /* For now, I are not having a verified domin of my own. 
 So temperorily using nodemailer for using my gmail for sending emails,
 later we will be using resend once I got my domain 🥲*/
@@ -34,10 +31,12 @@ export async function sendEmail(emailConfig: emailConfig): Promise<void> {
 			to: emailConfig.to,
 			subject: emailConfig.subject,
 			html: emailHtml,
-		});
+        });        
 
 		if (res.rejected.length)
 			console.log("Error, email not sent to : \n", res.rejected);
+        else         console.log("send to ");
+
 	} catch (error) {
 		console.log("Error sending email : \n", error);
 	}
@@ -46,7 +45,7 @@ export async function sendEmail(emailConfig: emailConfig): Promise<void> {
 /* ----------- For Resend : ----------
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-export async function sendEmail(emailConfig: emailConfig): Promise<ApiResType> {
+export async function await sendEmail(emailConfig: emailConfig): Promise<ApiResType> {
 	try {
 		const from = `"${constants.appName}" <${process.env.RESEND_EMAIL}>`;
 

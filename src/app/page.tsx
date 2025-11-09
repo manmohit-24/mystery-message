@@ -10,8 +10,8 @@ import { useUserStore } from "@/store/user.store";
 import HomeSkeleton from "@/components/skeletons/Home.Skeleton";
 
 export default function () {
-    const { user, isLoadingUser } = useUserStore();
-    return isLoadingUser || user ? (
+    const {isLoadingUser } = useUserStore();
+    return isLoadingUser ? (
         <HomeSkeleton />
     ) : (
         <main className="h-full flex flex-col  bg-background text-foreground">
@@ -34,7 +34,7 @@ export default function () {
 
                 <div className="mt-8 flex gap-4">
                     <Button className="w-60 text-md">
-                        <Link href={`/${user ? "dashboard" : "login"}`}>Start Asking</Link>
+                        <Link href={"/login"}>Start Asking</Link>
                     </Button>
                 </div>
             </section>

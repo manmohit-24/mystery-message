@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
 			react: WelcomeTemplate({ name: user.name, dashboardLink: "/" }),
 		};
 
-		sendEmail(emailConfig);
+		await sendEmail(emailConfig);
 
 		return APIResponse(RESPONSES.SUCCESS);
 	} catch (error) {
