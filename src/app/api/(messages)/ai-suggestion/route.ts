@@ -2,7 +2,7 @@ import { google } from "@ai-sdk/google";
 import { streamText } from "ai";
 import { APIResponse } from "@/lib/APIResponse";
 
-export const runtime = "edge";
+// export const runtime = "edge";
 
 export const maxDuration = 30;
 
