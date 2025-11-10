@@ -21,6 +21,14 @@ export async function validateSession({
 
 	const userId = session.user._id;
 
+    /* FIX TO AN ISSUE :-
+    Previously we were connecting to db after checking for guest (at line 55), becuase we not need to fetch the guest details from db, they are not stored in db.
+    But we forgot that this funtion is used in our project with assumption that db was connected within call of this function.
+    So we were not calling dbConnect function in routes where we call this function, but if user was guest, db was not connected and we was getting runtime errors from that routes.
+    So we are here connecting to db even before checking for guest
+    */
+	await dbConnect();
+
 	if (userId === "guest") {
 		if (allowGuest) {
 			return {
@@ -43,8 +51,9 @@ export async function validateSession({
 			status: 401,
 		};
 	}
-	try {
-		await dbConnect();
+    try {
+        // previously we were calling dbConnect here
+        // await dbConnect();
 
 		const user = await User.findById(userId);
 		if (!user) {
